@@ -38,6 +38,8 @@ gpu/
   run_gpu_tests.sh            execute the kernels on this GPU (Metal)
   metal/                      Swift harnesses for probe, canary and allocator
 platform/
+  RUN_ON_MAC.md               how to launch the app and see the self-test
+  make_mac_app.sh             builds the double-clickable HDDAGI.app
   engine_changes.patch        every engine change as a diff against the supplied tree
   build_and_run.sh            build in a copy, run the smoke project
   test_project/               HDDAGI smoke scene with frame capture

@@ -83,7 +83,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 
 	if not capture:
-		get_tree().quit()
+		# Interactive mode: stay open so the scene can be looked at.
 		return
 
 	await RenderingServer.frame_post_draw
