@@ -35,6 +35,12 @@ void main() {
 	ivec3 local_in_brick = ivec3(int(local_index & 7u), int((local_index >> 3) & 7u), int((local_index >> 6) & 7u));
 	ivec3 texel = sb_atlas_texel(page, local_in_brick, ivec2(pc.page_slots_x, pc.page_slots_y));
 
+	// Written unconditionally by the first invocation so a kernel that never ran
+	// cannot be mistaken for a clean result.
+	if (index == 0u) {
+		result.pad = 1u;
+	}
+
 	uint expected = (page << 9) | local_index;
 	uint actual = imageLoad(atlas, texel).r;
 

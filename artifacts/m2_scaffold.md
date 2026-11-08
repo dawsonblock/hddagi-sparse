@@ -1,9 +1,45 @@
 # M2 scaffold — GPU page table and physical pool
 
-Status: **the kernels execute on a real GPU. The M2 gate is still NOT met**, because
-the gate names Vulkan on the RTX 3080 Ti and this is Metal on an Apple M2 Pro. But
-"nothing has ever executed" is no longer true, and executing them found a bug that
-neither `spirv-val` nor the CPU twin could catch.
+Status: **M2.02 - M2.05 now run inside the engine.** The atlas, page table and
+auxiliary buffers are created by `GI::HDDAGI::create()`, the four kernels are
+compiled at runtime and dispatched, and the result is verified by reading the GPU
+buffers and the atlas texture back and comparing against the CPU oracle.
+
+The M2 gate is still nominally unmet because it names Vulkan on the RTX 3080 Ti and
+this is Metal on an Apple M2 Pro. But every resource and every kernel in the M2 scope
+now executes inside RenderingDevice, not in a standalone harness.
+
+## In-engine self-test
+
+Enabled with `rendering/global_illumination/hddagi/sparse_selftest` and a fixture path.
+Output on this machine, both for the empty room and a 4,000-tree forest:
+
+```
+HDDAGI sparse probe: SUPPORTED (check 0) - all capability checks passed
+HDDAGI sparse self-test: PASS
+  probe   : 1180 records, 0 mismatches, first_bad=-1
+  canary  : 524288 texels, 0 mismatches
+  alloc   : compacted=300 allocated=256 overflow=44 committed=256 duplicates=0
+```
+
+Zero engine errors. The canary is verified by `texture_get_data` and a CPU comparison
+of all 524,288 texels, so a write pass that silently no-ops cannot pass.
+
+Four bugs were found getting here, three of them only visible in-engine:
+
+1. **`submit()` is illegal on the main device** ("Only local devices can submit and
+   sync"). `buffer_get_data` already flushes and stalls, so the submit calls were both
+   wrong and unnecessary.
+2. **A zero-initialised check buffer reports "0 mismatches" if the check kernel never
+   runs.** The first canary "pass" was exactly this false positive; a sentinel value
+   exposed it.
+3. **`texture_get_data` returns zero bytes unless the texture has
+   `TEXTURE_USAGE_CAN_COPY_FROM_BIT`.** Silent, not an error.
+4. A second dispatch in the same compute list after a barrier and pipeline switch did
+   not take effect. The atlas readback removed the dependency on it entirely, which is
+   also a stronger check.
+
+## Standalone GPU harness (still useful)
 
 ## 0. Hardware execution
 

@@ -9,4 +9,6 @@ config/features=PackedStringArray("4.8")
 [rendering]
 
 renderer/rendering_method="forward_plus"
-global_illumination/hddagi/solid_cell_ratio=0.25
+global_illumination/hddagi/solid_cell_ratio=0.10
+global_illumination/hddagi/sparse_selftest=true
+global_illumination/hddagi/sparse_selftest_fixtures="res://probe_fixtures.bin"
