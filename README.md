@@ -1,242 +1,241 @@
-# hddagi-sparse — M0 work tree
+# HDDAGI Forest — sparse-cascade research work tree
 
-Working area for the HDDAGI sparse-brick cascade proposal. Nothing here modifies the
-supplied source trees; every tool reads them read-only.
+A macOS/Metal development tree for **HDDAGI** (hierarchical dynamic diffuse global
+illumination) in a custom **Godot 4.8.dev / Forward+** engine fork, plus a dense
+procedurally-seeded forest used as the benchmark scene. The goal: a *believable*
+forest that runs faster — measured, not guessed.
 
-## Layout
+> **Platform** Apple M2 Pro · macOS 26.2 · Metal 4 · Forward+ · 1600×900 reference
+> **Engine** custom `godot.macos.editor.dev.arm64` (`a3e594ca…`)
+> **Status** packaged `HDDAGI.app` verified 23/23 · controlled feature matrix done · sparse bricks probe-only
+
+---
+
+## What this is — and is not
+
+- **A measurement-first performance study.** Every claim traces to a JSON artifact
+  under `artifacts/bench/` or a report under `artifacts/`. The benchmark harness
+  is *fail-closed*: a run that errors, hangs, or produces a flat/black capture can
+  never be reported as a speedup.
+- **A working packaged app.** `platform/make_mac_app.sh` stages, validates and
+  swaps `HDDAGI.app` atomically; the previous bundle is always preserved.
+- **A sparse-brick *infrastructure* study — not a shipping feature.** Sparse
+  allocator/probe/canary kernels execute on GPU behind an opt-in gate, but there is
+  **no radiance store and no atlas sampling in lighting yet**. The dense renderer is
+  the only source of light. Nothing sparse is a renderer saving.
+- **Not** a VRAM study. Metal has no GPU timestamps or allocator counters in this
+  fork; RSS and static memory are reported separately and never as VRAM.
+
+## Headline results (controlled matrix, 1,500 trees, warm, n=3 interleaved)
+
+All rows: same scene, seed 987654, 1600×900, MSAA 4x, frame-indexed camera path,
+binary `a3e594ca…`. Median of three repeats; tails are worst-repeat values.
+Full table, per-repeat rows and image diffs: **[`artifacts/matrix.md`](artifacts/matrix.md)**.
+
+| configuration | median p50 | vs base | pixels changed >8* | verdict |
+|---|---:|---:|---:|---|
+| base — everything on | 37.53 ms | — | — | reference |
+| **shipped preset** (LOD rings + far-ring no-shadow) | 29.55 ms | −21.3% | 0.80% | current app default |
+| **`bal_looks`** (shipped + MSAA 2x + SSAO off) | **27.99 ms** | **−25.4%** | 4.28% | **recommended** |
+| `bal_perf` (bal_looks @720p) | 25.81 ms | −31.2% | n/a (res) | FPS-first option |
+| no shadows | 26.36 ms | −29.8% | **83.7%** | real speed, destroys the look |
+| GI off | 32.62 ms | −13.1% | **97.0%** (−104 MB RSS) | destroys the look |
+| no fog | 35.32 ms | −5.9% | ~100% | destroys the look |
+
+\* A pixel-change % is a **change proxy**, not a perceptual quality score. The
+"destroys the look" verdicts are subjective reads of the actual captures in
+`artifacts/bench/matrix/snaps/` — the images were viewed, not inferred.
+
+**Recommended balanced preset — `bal_looks`:** keeps every load-bearing visual
+(shadows, GI, volumetric + depth fog) and cuts a quarter of the frame time for a
+change that is invisible in the viewed stills. Defaults are **not** changed —
+applying it is a settings change for the user to approve.
+
+## Repository layout
 
 ```
-artifacts/
-  manifest.json           source provenance: archive hash, per-tree hashes, version, VCS state
-  engine_version.txt      one-line identity of the engine tree
-  allocations.json        every HDDAGI texture/buffer, declared dims, format, estimated bytes
-  allocations.csv         same, flat
-  shader_sites.json       every payload declaration/read/write across the HDDAGI shaders
-  memory_model.json       residency sweep, atlas packing, overhead, break-even
-  memory_model.md         readable version of the same
-  decision.md             M0.09 record: what passed, what is blocked, recommendation
-  m1_report.md            M1 record: semantics, test inventory, mutation evidence
-  m2_scaffold.md          M2 scaffold: capability table, shader map, integration recipe
-  macos_bringup.md        engine builds and HDDAGI renders on Metal
-  light_process_buffers.md measured: 56 -> 28 MiB default (11.2 MiB safe) on a dense forest
-  phase2_baseline.md      measured: frame times, GI cost 0.7-3.4 ms, teleport hitch
-  teleport_hitch.md       root cause + fix: worst frame 106 -> 64 ms, stutter -90%
-  wind.md                 foliage sway: globals registered, calibrated, ~0.1 ms cost
-  frame_budget.md         where the frame goes; grass shadows removed for 15.5%
-  bench/                  per-run JSON from the Phase 2 harness; README.md indexes it
-  app_package.md          packaged app provenance: hashes, checks, limitations
-  app_build/              per-build manifest, report and logs (captures are local)
-  bench_hardening.md      why a failed bench run cannot look like a speedup
-  cold_start.md           packaged 1,500-tree cold vs warm, distributions and hitches
-  lod.md                  distance tree LOD + shadow LOD: -21.8%, 0.8% of pixels
-tests/renderer_hddagi_sparse/
-  hddagi_brick_layout.h       grid, coordinate conversion, atlas addressing
-  hddagi_brick_allocator.*    page table, states, generations, scroll replay
-  test_*.cpp                  43 cases, dependency-free
-  run_tests.sh                build + run
-  fixtures/                   deterministic GPU-facing vectors
-engine/
-  hddagi_sparse_plan.h/.cpp   capability checks + dispatch planning, no RD dependency
-  test_sparse_plan.cpp        15 cases
-  RD_ADAPTER.md               uncompiled RenderingDevice integration recipe
-gpu/
-  shaders/                    four compute shaders, compiled and SPIR-V validated
-  hddagi_sparse_gpu_model.h   CPU twin of those shaders, same byte layouts
-  test_gpu_model.cpp          7 cases: fixture parity, allocator invariants, canary
-  make_fixture_bin.py         JSON fixtures -> 80-byte binary records
-  build.sh                    compile shaders + validate + run twin tests
-  run_gpu_tests.sh            execute the kernels on this GPU (Metal)
-  metal/                      Swift harnesses for probe, canary and allocator
+platform/test_project/     the Godot project (forest scene + benchmark harness)
+  main.tscn / main.gd      interactive forest scene; env-var capture & smoke hooks
+  bench.tscn / bench.gd    deterministic benchmark scene (seeded forest, frame-indexed
+                           camera trajectories, per-frame timing, JSON result)
+  hddagi_hud.gd            autoloaded perf HUD (F3)
+  hddagi_settings_menu.gd  F1 live-settings panel
+  hddagi_wind.gd           foliage-wind global uniforms + gust envelope
 platform/
-  RUN_ON_MAC.md               how to launch the app and see the self-test
-  make_mac_app.sh             stage, validate and swap the double-clickable app
-  verify_app.py               bundle provenance + headless and rendered smoke checks
-  test_verify_app.py          capture-parser and image-check regressions
-  engine_changes.patch        every engine change as a diff against the supplied tree
-  build_and_run.sh            build in a copy, run the smoke project
-  test_project/               HDDAGI smoke scene with frame capture, plus bench.gd
-    hddagi_hud.gd             performance HUD, top-left; autoloaded, F3 toggles
-    hddagi_wind.gd            registers the foliage wind globals and gusts them
-    hddagi_settings_menu.gd   F1 menu: wind, lighting, fog, overlay toggle
+  make_mac_app.sh          stage → import → verify → atomic-swap the .app (keeps backups)
+  verify_app.py            23-check bundle verifier (parity, imports, headless + rendered smoke)
+  test_verify_app.py       capture-parser / image-check unit regressions
+  engine_changes.patch     all engine deltas vs the supplied tree (applies at -p1)
+  hddagi_sparse_selftest.* sparse probe/self-test source mirrored into the engine build
 tools/
-  make_manifest.py        M0.01
-  hddagi_allocations.py   M0.04
-  check_shader_sites.py   M0.06 coverage enforcement
-  memory_model.py         M0.08
-  bench_run.sh            Phase 2 runner: one config -> artifacts/bench/<tag>.json
-  capture_check.py        blank/flat capture rejection, shared by app and bench checks
-  test_failure_modes.sh   failure-injection regressions for bench and packaging
-  profile_cold_warm.sh    {cold,warm} x {static,teleport,cut} on the packaged config
-  analyze_runs.py         distributions and spike counts from bench JSON
-  check_engine_copies.sh  verifies platform/ copies and that the patch reproduces them
+  bench_run.sh             one bounded benchmark → artifacts/bench/<tag>.json (fail-closed)
+  run_timed.py             process-group timeout wrapper (SIGTERM→SIGKILL, exit 124)
+  run_matrix.py            controlled multi-cell matrix: interleaved repeats, prewarm,
+                           provenance-validated summary (fails closed on mismatch)
+  capture_check.py         structured CAPTURE_STATS parser + flat/white/black rejection
+  img_diff.py              pixel-diff between captures (>8/255 channel delta)
+  test_failure_modes.sh    29-case failure-injection suite for bench + packaging
+  profile_cold_warm.sh     cold/warm × static/teleport/cut profile runner
+  analyze_runs.py          distributions and spike counts from bench JSON
+  check_engine_copies.sh   engine-copy / patch-drift enforcement (11 checks)
+tests/renderer_hddagi_sparse/   CPU oracle: brick layout, allocator, 43 cases
+gpu/                       four compute shaders + CPU twin + Metal harnesses
+engine/                    capability/dispatch plan core (no RD dependency)
+artifacts/                 every report, raw JSON, log, capture and diff — the evidence
 ```
-
-## Status
-
-**Engine builds and runs on macOS. M0 partially complete, M1 complete, M2 kernels
-execute on GPU behind an opt-in gate but do not light anything yet, and Phase 2 frame
-times are measured.**
-
-- **The fork builds and runs on this Mac** (Metal 4, Forward+): 4,421 translation
-  units, HDDAGI smoke scene renders, `DEBUG_DRAW_HDDAGI` shows the voxelised volume.
-  See `artifacts/macos_bringup.md`. The Windows/Vulkan path is still unbuilt, so
-  M0.05 and M0.07 (GPU counters and timings) remain blocked.
-- **Frame times and resident memory are now measured** (`artifacts/phase2_baseline.md`):
-  GI costs 4.9–8.6 ms per frame (17–30%) in a 600-tree forest, rising with camera
-  dynamism (static 4.92, move 6.20, teleport 8.55 ms). Every teleport costs a ~100 ms
-  hitch that does not occur with GI off. HDDAGI's resident footprint is ~100 MB, about
-  a third of the 291.6 MiB declared estimate — and the 56 → 11.2 MiB light-process
-  reduction changes neither frame time nor resident memory, so it is an allocation
-  saving rather than a residency saving. GPU timestamps do not exist on the Metal
-  driver in this fork, so these are wall-clock frame times with CPU render time
-  recorded alongside as a GPU-bound check.
-- **The frame budget is measured** (`artifacts/frame_budget.md`). Shadows are 38% of
-  the frame, more than GI, volumetric fog and MSAA combined. Grass shadow casting cost
-  4.44 ms and changed 0.01% of pixels, so it is now off: **28.60 → 24.16 ms, 35 → 41
-  FPS**. Shadow map resolution was ruled out as a lever (4096 → 1024 saves 0.34 ms);
-  the cost is geometry, not fill rate.
-- **The teleport hitch is fixed** (`artifacts/teleport_hitch.md`). A teleport marked
-  every cascade dirty and rebuilt all six in one frame; at ~13-15 ms per cascade that
-  was a ~100 ms freeze. `rendering/global_illumination/hddagi/full_rebuild_budget`
-  (default 1) now spreads them: worst frame 106 -> 64 ms, frames over 80 ms 9 -> 0,
-  total time in frames over 50 ms 1325 -> 127 ms (-90%), median unchanged. Converged
-  images are identical (0.007% of pixels); only the transition differs. A separate,
-  larger defect remains: first visit to a viewpoint costs ~700 ms per frame for
-  several frames, which is synchronous pipeline compilation, not cascade work.
-- M1 (CPU oracle) is complete: 43 test cases pass, clean under ASan/UBSan, and the
-  suite is proven to fail under deliberate mutation.
-- M2 kernels **execute on this machine's GPU** (Apple M2 Pro, Metal): translation
-  parity 1,180/1,180, atlas canary 524,288/524,288 texels, allocator invariants hold.
-  The capability/dispatch decision core is tested (15 cases). They are now behind
-  `rendering/global_illumination/hddagi/sparse_enabled` (default false), which runs the
-  probe/self-test only; there is no radiance store or atlas sampling, so the dense
-  renderer remains authoritative. `artifacts/sparse_status.md` records the gate, the
-  image-parity/RSS measurements and the exact missing pieces. The M2 gate still names
-  Vulkan on the RTX 3080 Ti, so it is not met. See `artifacts/m2_scaffold.md`.
-
-Read `artifacts/decision.md` for the M0 gate and `artifacts/m1_report.md` for M1.
-
-No number in `artifacts/` is a VRAM measurement. They are source-derived arithmetic.
-
-## Foliage wind
-
-The forest sways. The foliage shaders declare five `global uniform` wind parameters and
-every material already sets `wind_enabled = true`, but nothing in this fork registered
-them, so every material warned "Shader uses global parameter ... but it was removed"
-on every frame and nothing moved. `platform/test_project/hddagi_wind.gd` registers them
-and drives a gust envelope on `wind_power`.
-
-Only `wind_power` is animated: `wind_velocity`, `wind_turbulence` and
-`wind_sway_frequencies` are **phase** terms in the shader (`wind_time = TIME -
-dot(world_pos.xz, wind_effective_velocity)`), so varying them pops the whole forest at
-once. Details and calibration in `artifacts/wind.md`.
-
-Measured: 46% of pixels change between frames 3 s apart with a static camera, at a cost
-of **≤0.1 ms** — the shader was already running the wind branch, so enabling it changes
-values, not instruction count. `HDDAGI_WIND=0` pins `wind_power` to zero while leaving
-the globals registered, so the shaders take the same path and log the same warnings as
-with wind on while the foliage stays still; the benchmark runner sets that so timings
-stay comparable with the pre-wind baseline. Capture mode (`HDDAGI_CAPTURE=1`) turns wind
-off for the same reason it hides the HUD: captures are compared pixel for pixel.
-
-## Distance LOD
-
-The forest is split into three camera-relative distance rings: near (< 35 m) at lod0,
-mid (35-75 m) at lod1, far (> 75 m) at lod2, with the far ring not casting shadows. The
-rings are rebuilt when the camera moves 5 m. At 1,500 trees that is
-**37.41 -> 29.37 ms p50 (-21.5%)**, every measured frame under 33 ms in the repeat run,
-and 0.80% of pixels changing by more than 8/255; teleport hitch time drops 64%.
-`HDDAGI_LOD=0` puts every tree back at lod0, `HDDAGI_SHADOW_LOD=off` restores all
-shadows, and `HDDAGI_LOD_NEAR` / `HDDAGI_LOD_MID` move the boundaries. The benchmark
-harness defaults to off so the old baseline stays reproducible. Details and the quality
-table are in `artifacts/lod.md`.
-
-## Settings menu (F1)
-
-`platform/test_project/hddagi_settings_menu.gd` adds a panel on the right, opened and
-closed with **F1**, that adjusts the running scene live:
-
-| section | controls |
-|---|---|
-| Wind | enabled, strength, gust depth |
-| Lighting | HDDAGI indirect on/off, GI energy, sun energy, sun elevation, sun azimuth, ambient, exposure |
-| Fog | depth fog on/off + density, volumetric fog on/off + density, length, anisotropy |
-| Overlay | show CPU / GPU / FPS (same switch as F3) |
-
-It locates the scene's `WorldEnvironment` and `DirectionalLight3D` when it opens rather
-than requiring the scene to register them, so it works in both `main.tscn` and
-`bench.tscn`, and it re-reads the live values on every open so the controls never
-disagree with the scene.
-
-Wind strength and gust depth are the only wind controls exposed, because the other wind
-parameters are phase terms in the shader and would pop the forest — see `artifacts/wind.md`.
-
-Cost is **+0.007 ms** while open and zero when closed (its `_process` is disabled
-outside the open state). `HDDAGI_MENU=0` disables it entirely; `tools/bench_run.sh`
-sets that so benchmark timings are unaffected.
-
-## Performance HUD
-
-The running project shows a HUD in the top-left, autoloaded from
-`platform/test_project/hddagi_hud.gd`:
-
-```
-19.0 FPS  peak 147.5
-frame 37.49 ms
-cpu   2.80 ms   7%
-gpu  34.69 ms  93% (est)
-mem  81.8 MB
-```
-
-- `FPS` is wall-clock rate; it turns amber below 55 and red below 30.
-- `peak` appears only when the worst frame in the refresh window is more than twice
-  the mean, so a hitch is not averaged away.
-- `cpu` is `viewport_get_measured_render_time_cpu` and its share of the frame.
-- `gpu` is `viewport_get_measured_render_time_gpu` where the backend supports it.
-  **On Metal in this fork it always reads 0** — `rendering_device_driver_metal.cpp:2430`
-  clears the timestamp buffer because Metal timestamps are unimplemented — so the HUD
-  falls back to `frame - cpu` and labels the line `(est)`. It is an estimate and is
-  marked as one; it is never presented as a measurement.
-- `mem` is `Performance.MEMORY_STATIC`.
-
-F3 hides it. `HDDAGI_HUD=0` disables it entirely; `tools/bench_run.sh` sets that by
-default because the overlay costs a measurable **0.32 ms/frame (1.1%)** on the
-600-tree forest (28.30 → 28.62 ms p50).
 
 ## Quick start
 
-```bash
-python3 tools/make_manifest.py
-python3 tools/hddagi_allocations.py --json artifacts/allocations.json --csv artifacts/allocations.csv
-python3 tools/check_shader_sites.py
-python3 tools/memory_model.py --subsystem-mib 291.628 \
-        --json artifacts/memory_model.json --markdown artifacts/memory_model.md
-```
-
-`check_shader_sites.py` exits non-zero when a shader payload access exists that is not
-registered in `shader_sites.json`. It is intended to be run after every shader change
-in later milestones.
+### Run the app
 
 ```bash
-./tools/check_engine_copies.sh
+# build the packaged app (stages, imports, verifies, then swaps in; keeps the old bundle)
+platform/make_mac_app.sh "/Users/dawsonblock/Downloads/hddagi-run/HDDAGI.app"
+
+# or just run the project with the dev engine binary
+"/Users/dawsonblock/Downloads/hddagi-build/godot-dynamic_gi_2/bin/godot.macos.editor.dev.arm64" \
+    --path platform/test_project
 ```
 
-`check_engine_copies.sh` fails if the copies of the sparse self-test in `platform/`, the
-engine patch and the build tree disagree, or if `engine_changes.patch` no longer applies
-with `-p1` to the supplied tree and reproduces the build byte for byte.
+In-app: **F1** settings menu · **F3** perf HUD · foliage wind is on by default.
+
+### One benchmark
 
 ```bash
-cd tests/renderer_hddagi_sparse
-./run_tests.sh                 # build and run the CPU oracle
-./run_tests.sh --fixtures      # also regenerate fixtures/
-CXXFLAGS="-fsanitize=address,undefined" BUILD=build-san ./run_tests.sh
+env SCENE=forest TREES=1500 RATIO=0.10 FRAMES=300 WARMUP=120 TIMEOUT=180 \
+    TAG=my_run BENCH_LOD=rings BENCH_SHADOW_LOD=far \
+    ./tools/bench_run.sh
+# → artifacts/bench/my_run.json  (raw per-frame ms, p50/95/99, settings,
+#   manifest + binary hashes, cache state, peak RSS + scope)
 ```
+
+### The full controlled matrix
 
 ```bash
-cd gpu
-./build.sh                     # compile + validate shaders, run the twin tests
-./run_gpu_tests.sh             # execute the kernels on this machine's GPU (Metal)
-
-cd ../engine
-./build.sh                     # capability and dispatch decisions
+python3 tools/run_matrix.py            # 89 bounded runs, ~25 min, aborts on first failure
+python3 tools/run_matrix.py --summarize  # re-validate + regenerate the table only
+CELLS="bal_looks bal_perf" python3 tools/run_matrix.py --phase timing
 ```
+
+### Verify everything
+
+```bash
+platform/verify_app.py "/Users/dawsonblock/Downloads/hddagi-run/HDDAGI.app"   # 23 checks
+cd platform && python3 -m unittest test_verify_app -v                        # 14 unit tests
+tools/test_failure_modes.sh                                                 # 29 injected-failure tests
+tools/check_engine_copies.sh                                                # 11 drift checks
+```
+
+## The benchmark harness (why the numbers can be trusted)
+
+`tools/bench_run.sh` is fail-closed. A run **fails** when:
+
+- the engine exits non-zero **or** is killed by the `run_timed.py` timeout (124);
+- the log contains script/shader/resource-error patterns;
+- no fresh `BENCH_RESULT` line, malformed/stale JSON, or missing frame samples;
+- the capture is missing, flat, solid-white or solid-black (contrast gate);
+- an existing same-tag JSON would have to be overwritten — failures publish nothing.
+
+Each published JSON records: raw `frame_ms`, percentile distribution, startup
+phases, `settings` (effective toggles read back from the live scene), `trajectory`
+(frame-indexed), `cache_state`, `binary_sha256`, `project_manifest_sha256`
+(`.godot/` + `override.cfg` excluded), `override_cfg_sha256` + contents,
+`peak_rss_mb` + `peak_rss_scope` (whole process — *not* steady state), `static_mb`
+per-frame, and `timing_usable`. Quality/snapshot runs set `timing_usable: false`
+because the readback is inside the window.
+
+`run_matrix.py` pins the entire `BENCH_*` environment per cell, interleaves
+repeats, records valid run IDs in `matrix_runs.json`, and re-validates binary +
+manifest + `timing_usable` at summary time — a stale or foreign JSON exits 1.
+
+## Feature notes
+
+### Distance / shadow LOD (shipped default)
+
+Camera-relative rings — near <35 m lod0, mid 35–75 m lod1, far >75 m lod2 with the
+far ring not casting shadows; rebuilt after 5 m of camera movement. Validated at a
+*moved* viewpoint (origin-fixed rings change 24.5% of pixels there; camera-relative
+is within run noise). −21.3% frame time, 0.80% of pixels; teleport hitch time
+roughly halved. `HDDAGI_LOD`, `HDDAGI_SHADOW_LOD`, `HDDAGI_LOD_NEAR/MID`,
+`BENCH_LOD_CAMERA` control it; details in [`artifacts/lod.md`](artifacts/lod.md).
+
+### Teleport hitch
+
+Fixed cause: a teleport marked every GI cascade dirty and rebuilt all six in one
+frame (~100 ms). `rendering/global_illumination/hddagi/full_rebuild_budget`
+(default 1) spreads them; worst frame 106→64 ms, >50 ms time −90%. Under the
+frame-indexed trajectory, each recorded jump still precedes a ~5-frame cluster
+(~2.7 on shipped) — reduced, not eliminated; needs engine-side rebuild
+amortization beyond the current budget. [`artifacts/teleport_hitch.md`](artifacts/teleport_hitch.md)
+
+### Foliage wind
+
+Five `global uniform` wind parameters registered + gust envelope on `wind_power`
+(the others are phase terms — animating them pops the forest). ≤0.1 ms cost.
+`HDDAGI_WIND=0` pins power to zero while keeping globals registered; capture mode
+disables it. [`artifacts/wind.md`](artifacts/wind.md)
+
+### Perf HUD & settings menu
+
+HUD (F3): FPS/peak, frame/cpu ms, `gpu` falls back to `frame−cpu` labelled
+`(est)` because Metal timestamps read 0 — always marked an estimate. Menu (F1):
+wind, lighting, fog, overlay — live against the running scene.
+
+## Sparse bricks — honest status
+
+Gate: `rendering/global_illumination/hddagi/sparse_enabled` (default **false**).
+
+- `false` → dense renderer only; logs `HDDAGI_SPARSE_MODE dense`.
+- `true` → capability probe (+ self-test if `sparse_selftest`), logs
+  `HDDAGI_SPARSE_MODE probe (lighting remains dense; no sparse savings claimed)`.
+
+Measured: image parity effectively exact (0.022% of pixels — GI temporal noise),
+zero per-frame cost, probe +36 ms startup, self-test ~0.6 s startup. **No speedup
+or memory saving is claimed.** Missing for real sparse lighting: a radiance-store
+kernel, a page-table→atlas sampling path in the GI light pass, and per-frame
+allocator integration with overflow fallback. [`artifacts/sparse_status.md`](artifacts/sparse_status.md)
+
+## Reports index
+
+| artifact | what it records |
+|---|---|
+| [`artifacts/matrix.md`](artifacts/matrix.md) | controlled 1,500-tree feature matrix + balanced-preset recommendation |
+| [`artifacts/lod.md`](artifacts/lod.md) | tree/shadow LOD before-after + camera-relative validation |
+| [`artifacts/cold_start.md`](artifacts/cold_start.md) | packaged cold vs warm startup, distributions, hitches |
+| [`artifacts/app_package.md`](artifacts/app_package.md) | app provenance: binary + manifest hashes, 23-check list |
+| [`artifacts/bench_hardening.md`](artifacts/bench_hardening.md) | why a failed run can't look like a speedup |
+| [`artifacts/sparse_status.md`](artifacts/sparse_status.md) | gate, parity/cost measurements, exact missing pieces |
+| [`artifacts/teleport_hitch.md`](artifacts/teleport_hitch.md) | root cause + budget fix |
+| [`artifacts/frame_budget.md`](artifacts/frame_budget.md) | where the frame goes (older binary — labelled) |
+| [`artifacts/phase2_baseline.md`](artifacts/phase2_baseline.md) | earlier-baseline measurements (older binary — labelled) |
+| [`artifacts/decision.md`](artifacts/decision.md) | M0 gate record |
+| [`artifacts/m1_report.md`](artifacts/m1_report.md) · [`artifacts/m2_scaffold.md`](artifacts/m2_scaffold.md) | sparse CPU oracle + kernel scaffold |
+| [`artifacts/bench/README.md`](artifacts/bench/README.md) | index of every JSON and which claim it backs |
+
+Binary identity matters: numbers gathered under `29fa35ed…` are kept in their
+reports but are **not** mixed into `a3e594ca…` comparisons.
+
+## Known limitations
+
+- **No GPU-stage causality on Metal** — timestamps read 0; deltas are frame-time
+  deltas, never "GPU savings" or "VRAM savings".
+- **Cold** = Godot shader cache moved aside; OS page cache and driver-level Metal
+  caches are uncontrolled. Cold cells are single runs (n=1).
+- **Pixel diffs are change proxies**; stills cannot show motion shimmer — no
+  temporal claims are made.
+- **`bal_looks` r1 has a three-frame hitch cluster** (66.8/68.8/71.0 ms at frames
+  20–23); retained, cause unconfirmed, not hidden.
+- **Run-to-run p50 spread ≈ ±0.2 ms**; sub-millisecond deltas rest on
+  repeat-median agreement.
+- The sparse path lights nothing — step 5 (radiance storage/sampling + lighting
+  integration) is open work, tracked in `sparse_status.md`.
+
+## Working rules this repo follows
+
+- Nothing in `artifacts/` is a VRAM measurement; arithmetic estimates are labelled.
+- Every report names its binary hash, project manifest hash, and run conditions.
+- The previous `HDDAGI.app` bundle is always preserved (`HDDAGI.app.bak-*`).
+- `platform/` engine copies, `engine_changes.patch` and the build tree must agree —
+  `check_engine_copies.sh` enforces it.
+- Benchmark defaults ≠ app defaults by design; every matrix cell sets explicit
+  toggles and records the effective set.
