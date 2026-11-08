@@ -28,6 +28,10 @@ cp "$BIN" "$OUT/Contents/MacOS/godot"
 cp -R "$HERE/test_project" "$OUT/Contents/Resources/project"
 rm -rf "$OUT/Contents/Resources/project/.godot"
 
+# Generate the import cache inside the bundle. Without it the tree textures fail to
+# load and the forest renders untextured; the cache is deliberately not committed.
+"$OUT/Contents/MacOS/godot" --headless --path "$OUT/Contents/Resources/project" --import >/dev/null 2>&1 || true
+
 cat > "$OUT/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
