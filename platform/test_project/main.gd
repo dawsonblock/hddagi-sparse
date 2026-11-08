@@ -1,10 +1,15 @@
 extends Node3D
 
-# HDDAGI forest scene using the real Foliage3D tree assets rather than placeholder
-# primitives. Density comes from HDDAGI_TREES; HDDAGI_CAPTURE=1 writes frames and
-# exits, otherwise the scene stays open for inspection.
+# HDDAGI forest scene: real Foliage3D tree assets, displaced terrain with the demo's
+# ground albedo, volumetric fog and bloom.
+#
+# HDDAGI_TREES sets density, HDDAGI_CAPTURE=1 writes frames and exits.
 
-const CLEARING := 8.0
+const CLEARING := 9.0
+const TERRAIN_SIZE := 400.0
+const TERRAIN_RES := 96
+const TERRAIN_AMPLITUDE := 1.8
+
 const OUT_NORMAL := "/tmp/hddagi_normal.png"
 const OUT_DEBUG := "/tmp/hddagi_debug.png"
 
@@ -14,32 +19,55 @@ const TREE_MESHES := [
 	"res://demo/foliage/models/pine_lod0.res",
 ]
 
+var _noise := FastNoiseLite.new()
+
 func _ready() -> void:
 	var trees := int(OS.get_environment("HDDAGI_TREES")) if OS.get_environment("HDDAGI_TREES") != "" else 600
 	var capture := OS.get_environment("HDDAGI_CAPTURE") == "1"
+
+	_noise.seed = 4242
+	_noise.frequency = 0.012
+	_noise.fractal_octaves = 4
+	_noise.fractal_lacunarity = 2.0
 
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
 	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.32, 0.45, 0.62)
-	sky_mat.sky_horizon_color = Color(0.68, 0.70, 0.72)
-	sky_mat.ground_horizon_color = Color(0.45, 0.42, 0.38)
-	sky_mat.ground_bottom_color = Color(0.22, 0.20, 0.18)
+	sky_mat.sky_top_color = Color(0.30, 0.44, 0.62)
+	sky_mat.sky_horizon_color = Color(0.72, 0.72, 0.70)
+	sky_mat.ground_horizon_color = Color(0.42, 0.40, 0.34)
+	sky_mat.ground_bottom_color = Color(0.20, 0.19, 0.16)
+	sky_mat.sun_angle_max = 12.0
 	sky.sky_material = sky_mat
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 1.35
+	env.ambient_light_energy = 1.2
 
-	# Quality: SSAO and fog give the depth cues that make a forest read as solid.
 	env.ssao_enabled = true
-	env.ssao_radius = 1.5
-	env.ssao_intensity = 2.0
-	env.ssao_power = 1.5
+	env.ssao_radius = 1.6
+	env.ssao_intensity = 2.2
+	env.ssao_power = 1.6
+
+	# Volumetric fog is what turns a lit forest into shafts of light.
+	env.volumetric_fog_enabled = true
+	env.volumetric_fog_density = 0.008
+	env.volumetric_fog_albedo = Color(0.85, 0.87, 0.90)
+	env.volumetric_fog_emission = Color(0.02, 0.02, 0.02)
+	env.volumetric_fog_anisotropy = 0.35
+	env.volumetric_fog_length = 96.0
+
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.62, 0.66, 0.70)
-	env.fog_density = 0.005
+	env.fog_light_color = Color(0.66, 0.70, 0.74)
+	env.fog_density = 0.004
+
+	env.glow_enabled = true
+	env.glow_intensity = 0.35
+	env.glow_bloom = 0.08
+	env.glow_hdr_threshold = 1.0
+
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure = 1.05
 
 	env.dynamic_gi_enabled = true
 	env.dynamic_gi_cascades = 6
@@ -52,35 +80,25 @@ func _ready() -> void:
 	add_child(we)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-38.0, 42.0, 0.0)
-	sun.light_energy = 1.5
-	sun.light_color = Color(1.0, 0.96, 0.88)
+	sun.rotation_degrees = Vector3(-22.0, 38.0, 0.0) # low sun for longer shafts
+	sun.light_energy = 2.0
+	sun.light_color = Color(1.0, 0.94, 0.84)
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 120.0
+	sun.directional_shadow_max_distance = 150.0
+	sun.directional_shadow_blend_splits = true
 	add_child(sun)
 
-	var forest_radius := clampf(sqrt(float(trees) * 26.0 / PI), 14.0, 200.0)
+	var forest_radius := clampf(sqrt(float(trees) * 26.0 / PI), 16.0, 190.0)
 
 	var cam := Camera3D.new()
 	add_child(cam)
-	# Stand in a clearing: trees are excluded within CLEARING metres of the origin,
-	# otherwise the camera ends up inside a trunk at this density.
-	cam.position = Vector3(0.0, 1.9, 0.0)
-	cam.look_at(Vector3(0.0, 6.0, -14.0), Vector3.UP)
+	cam.position = Vector3(0.0, 1.9 + _height(0.0, 0.0), 0.0)
+	cam.look_at(Vector3(0.0, 7.0, -16.0), Vector3.UP)
 	cam.current = true
-	cam.fov = 70.0
+	cam.fov = 72.0
 
-	var ground := MeshInstance3D.new()
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(600.0, 600.0) # large enough that its edge is never in shot
-	plane.subdivide_width = 8
-	plane.subdivide_depth = 8
-	ground.mesh = plane
-	var ground_mat := StandardMaterial3D.new()
-	ground_mat.albedo_color = Color(0.20, 0.26, 0.14)
-	ground_mat.roughness = 0.95
-	ground.material_override = ground_mat
-	add_child(ground)
+	_add_terrain()
+	_add_backdrop()
 
 	if trees > 0:
 		_add_forest(trees, forest_radius)
@@ -110,6 +128,79 @@ func _ready() -> void:
 
 	get_tree().quit()
 
+func _height(x: float, z: float) -> float:
+	# Flatten toward the origin so the clearing stays walkable and trees do not
+	# intersect the camera.
+	var d := sqrt(x * x + z * z)
+	var fade := clampf((d - CLEARING) / 18.0, 0.0, 1.0)
+	return _noise.get_noise_2d(x, z) * TERRAIN_AMPLITUDE * fade
+
+func _add_terrain() -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	var step := TERRAIN_SIZE / float(TERRAIN_RES)
+	var half := TERRAIN_SIZE * 0.5
+	var uv_scale := 26.0
+
+	for z in range(TERRAIN_RES):
+		for x in range(TERRAIN_RES):
+			var x0 := -half + x * step
+			var z0 := -half + z * step
+			var x1 := x0 + step
+			var z1 := z0 + step
+			var p00 := Vector3(x0, _height(x0, z0), z0)
+			var p10 := Vector3(x1, _height(x1, z0), z0)
+			var p01 := Vector3(x0, _height(x0, z1), z1)
+			var p11 := Vector3(x1, _height(x1, z1), z1)
+
+			st.set_uv(Vector2(x0, z0) / uv_scale)
+			st.add_vertex(p00)
+			st.set_uv(Vector2(x1, z0) / uv_scale)
+			st.add_vertex(p10)
+			st.set_uv(Vector2(x0, z1) / uv_scale)
+			st.add_vertex(p01)
+
+			st.set_uv(Vector2(x1, z0) / uv_scale)
+			st.add_vertex(p10)
+			st.set_uv(Vector2(x1, z1) / uv_scale)
+			st.add_vertex(p11)
+			st.set_uv(Vector2(x0, z1) / uv_scale)
+			st.add_vertex(p01)
+
+	st.generate_normals()
+	st.generate_tangents()
+	var mesh := st.commit()
+
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+
+	var mat := StandardMaterial3D.new()
+	var albedo := load("res://demo/terrain/forest_ah.png")
+	if albedo is Texture2D:
+		mat.albedo_texture = albedo
+	mat.albedo_color = Color(0.78, 0.80, 0.74)
+	mat.roughness = 0.95
+	mat.metallic = 0.0
+	mat.uv1_scale = Vector3(1, 1, 1)
+	node.material_override = mat
+	add_child(node)
+
+func _add_backdrop() -> void:
+	# The detailed terrain stops at TERRAIN_SIZE/2; without this the sky shows through
+	# as a bright band at the horizon. A large low plane fills it and fog blends it.
+	var node := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(3000.0, 3000.0)
+	node.mesh = plane
+	node.position = Vector3(0.0, -1.5, 0.0)
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.16, 0.20, 0.12)
+	mat.roughness = 1.0
+	node.material_override = mat
+	add_child(node)
+
 func _add_forest(count: int, radius: float) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 987654
@@ -136,8 +227,10 @@ func _add_forest(count: int, radius: float) -> void:
 		for i in range(per_species):
 			var angle := rng.randf() * TAU
 			var dist := CLEARING + sqrt(rng.randf()) * (radius - CLEARING)
-			var pos := Vector3(cos(angle) * dist, 0.0, sin(angle) * dist)
-			var s := 0.70 + rng.randf() * 0.40
+			var px := cos(angle) * dist
+			var pz := sin(angle) * dist
+			var pos := Vector3(px, _height(px, pz) - 0.15, pz)
+			var s := 0.70 + rng.randf() * 0.45
 			var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s))
 			mm.set_instance_transform(i, Transform3D(basis, pos))
 
@@ -145,18 +238,19 @@ func _add_forest(count: int, radius: float) -> void:
 		node.multimesh = mm
 		add_child(node)
 
-	# A little ground cover so the floor is not bare.
 	var grass := load("res://demo/foliage/models/grass_lod0.res")
 	if grass is Mesh:
 		var gm := MultiMesh.new()
 		gm.transform_format = MultiMesh.TRANSFORM_3D
-		gm.instance_count = count * 4
+		gm.instance_count = count * 8
 		gm.mesh = grass
-		for i in range(count * 4):
+		for i in range(count * 8):
 			var angle := rng.randf() * TAU
 			var dist := sqrt(rng.randf()) * radius
-			var pos := Vector3(cos(angle) * dist, 0.0, sin(angle) * dist)
-			var s := 0.8 + rng.randf() * 0.5
+			var px := cos(angle) * dist
+			var pz := sin(angle) * dist
+			var pos := Vector3(px, _height(px, pz) - 0.05, pz)
+			var s := 0.8 + rng.randf() * 0.6
 			gm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(s, s, s)), pos))
 		var gn := MultiMeshInstance3D.new()
 		gn.multimesh = gm
