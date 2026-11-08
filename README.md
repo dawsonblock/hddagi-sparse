@@ -16,12 +16,19 @@ artifacts/
   memory_model.md         readable version of the same
   decision.md             M0.09 record: what passed, what is blocked, recommendation
   m1_report.md            M1 record: semantics, test inventory, mutation evidence
+  m2_scaffold.md          M2 scaffold: capability table, shader map, integration recipe
 tests/renderer_hddagi_sparse/
   hddagi_brick_layout.h       grid, coordinate conversion, atlas addressing
   hddagi_brick_allocator.*    page table, states, generations, scroll replay
   test_*.cpp                  43 cases, dependency-free
   run_tests.sh                build + run
   fixtures/                   deterministic GPU-facing vectors
+gpu/
+  shaders/                    four compute shaders, compiled and SPIR-V validated
+  hddagi_sparse_gpu_model.h   CPU twin of those shaders, same byte layouts
+  test_gpu_model.cpp          7 cases: fixture parity, allocator invariants, canary
+  make_fixture_bin.py         JSON fixtures -> 80-byte binary records
+  build.sh                    compile shaders + validate + run twin tests
 tools/
   make_manifest.py        M0.01
   hddagi_allocations.py   M0.04
@@ -31,12 +38,15 @@ tools/
 
 ## Status
 
-**M0 partially complete, M1 complete.**
+**M0 partially complete, M1 complete, M2 scaffolding only.**
 
 - M0.01, M0.04, M0.06, M0.08 ran here. M0.02, M0.03, M0.05, M0.07 require a
   Windows 11 + MSVC + Vulkan build and were not executed.
 - M1 (CPU oracle) is complete: 43 test cases pass, clean under ASan/UBSan, and the
   suite is proven to fail under deliberate mutation.
+- M2 is scaffolding: four compute shaders compile to validated SPIR-V and a CPU twin
+  agrees with the M1 oracle on 1,180 fixtures. **Nothing has run on a GPU**, so the
+  M2 gate is not met. See `artifacts/m2_scaffold.md`.
 
 Read `artifacts/decision.md` for the M0 gate and `artifacts/m1_report.md` for M1.
 
@@ -61,4 +71,9 @@ cd tests/renderer_hddagi_sparse
 ./run_tests.sh                 # build and run the CPU oracle
 ./run_tests.sh --fixtures      # also regenerate fixtures/
 CXXFLAGS="-fsanitize=address,undefined" BUILD=build-san ./run_tests.sh
+```
+
+```bash
+cd gpu
+./build.sh                     # compile + validate shaders, run the twin tests
 ```

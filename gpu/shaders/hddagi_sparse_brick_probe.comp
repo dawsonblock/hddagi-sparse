@@ -1,0 +1,113 @@
+// M2.04 — translation parity against the CPU oracle fixtures.
+//
+// One invocation per fixture record. Recomputes wrapped coordinate, virtual slot,
+// world region and atlas texel entirely in the shader and compares against the
+// values the M1 oracle produced. Any disagreement sets parity_ok = 0 and is
+// reported per record so the failing index is identifiable.
+//
+// The fixture buffer is uploaded verbatim from gpu/fixtures/probe_fixtures.bin,
+// 80 bytes per record, all fields 4-byte aligned.
+
+#version 450
+
+layout(local_size_x = 64) in;
+
+struct ProbeFixture {
+	uint cascade;
+	int pos_x;
+	int pos_y;
+	int pos_z;
+	int local_x;
+	int local_y;
+	int local_z;
+	uint expected_slot;
+	uint expected_wrapped_x;
+	uint expected_wrapped_y;
+	uint expected_wrapped_z;
+	int expected_region_x;
+	int expected_region_y;
+	int expected_region_z;
+	uint expected_texel_x;
+	uint expected_texel_y;
+	uint expected_texel_z;
+	uint pad0;
+	uint pad1;
+	uint pad2;
+};
+
+struct ProbeResult {
+	uint slot;
+	uint wrapped_x;
+	uint wrapped_y;
+	uint wrapped_z;
+	int region_x;
+	int region_y;
+	int region_z;
+	uint texel_x;
+	uint texel_y;
+	uint texel_z;
+	uint parity_ok;
+	uint pad0;
+};
+
+layout(set = 0, binding = 0, std430) readonly buffer Fixtures { ProbeFixture records[]; } fixtures;
+layout(set = 0, binding = 1, std430) writeonly buffer Results { ProbeResult records[]; } results;
+
+layout(push_constant) uniform PC {
+	uint count;
+	uint grid_x;
+	uint grid_y;
+	uint grid_z;
+	uint cascade_count;
+	uint brick_dim_x;
+	uint brick_dim_y;
+	uint brick_dim_z;
+	uint page_slots_x;
+	uint page_slots_y;
+} pc;
+
+void main() {
+	uint index = gl_GlobalInvocationID.x;
+	if (index >= pc.count) {
+		return;
+	}
+
+	ProbeFixture f = fixtures.records[index];
+
+	ivec3 grid = ivec3(pc.grid_x, pc.grid_y, pc.grid_z);
+	ivec3 position = ivec3(f.pos_x, f.pos_y, f.pos_z);
+	ivec3 local_cell = ivec3(f.local_x, f.local_y, f.local_z);
+
+	ivec3 wrapped = sb_wrap(local_cell, position, grid);
+	ivec3 region = sb_world_region(local_cell, position, grid);
+	uint slot = sb_slot(wrapped, f.cascade, ivec3(pc.brick_dim_x, pc.brick_dim_y, pc.brick_dim_z));
+	ivec3 local_in_brick = wrapped & 7;
+	ivec3 texel = sb_atlas_texel(slot, local_in_brick, ivec2(pc.page_slots_x, pc.page_slots_y));
+
+	ProbeResult r;
+	r.slot = slot;
+	r.wrapped_x = uint(wrapped.x);
+	r.wrapped_y = uint(wrapped.y);
+	r.wrapped_z = uint(wrapped.z);
+	r.region_x = region.x;
+	r.region_y = region.y;
+	r.region_z = region.z;
+	r.texel_x = uint(texel.x);
+	r.texel_y = uint(texel.y);
+	r.texel_z = uint(texel.z);
+	r.pad0 = 0u;
+
+	bool ok = slot == f.expected_slot &&
+			uint(wrapped.x) == f.expected_wrapped_x &&
+			uint(wrapped.y) == f.expected_wrapped_y &&
+			uint(wrapped.z) == f.expected_wrapped_z &&
+			region.x == f.expected_region_x &&
+			region.y == f.expected_region_y &&
+			region.z == f.expected_region_z &&
+			uint(texel.x) == f.expected_texel_x &&
+			uint(texel.y) == f.expected_texel_y &&
+			uint(texel.z) == f.expected_texel_z;
+	r.parity_ok = ok ? 1u : 0u;
+
+	results.records[index] = r;
+}

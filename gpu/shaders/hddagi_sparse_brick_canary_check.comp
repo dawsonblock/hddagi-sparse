@@ -1,0 +1,47 @@
+// M2.05, read half — verify every atlas texel still holds its own pattern.
+//
+// A single mismatched texel increments the atomic counter, so the host only has
+// to read one word to know whether the atlas addressing is correct. The first
+// failing index is also recorded for diagnosis.
+
+#version 450
+
+layout(local_size_x = 64) in;
+
+layout(set = 0, binding = 0, r32ui) uniform readonly uimage3D atlas;
+layout(set = 0, binding = 1, std430) buffer CheckResult {
+	uint mismatches;
+	uint first_bad_page;
+	uint first_bad_local;
+	uint pad;
+} result;
+
+layout(push_constant) uniform PC {
+	uint page_count;
+	uint page_slots_x;
+	uint page_slots_y;
+} pc;
+
+void main() {
+	uint index = gl_GlobalInvocationID.x;
+	uint total = pc.page_count * 512u;
+	if (index >= total) {
+		return;
+	}
+
+	uint page = index / 512u;
+	uint local_index = index % 512u;
+	ivec3 local_in_brick = ivec3(int(local_index & 7u), int((local_index >> 3) & 7u), int((local_index >> 6) & 7u));
+	ivec3 texel = sb_atlas_texel(page, local_in_brick, ivec2(pc.page_slots_x, pc.page_slots_y));
+
+	uint expected = (page << 9) | local_index;
+	uint actual = imageLoad(atlas, texel).r;
+
+	if (actual != expected) {
+		uint slot = atomicAdd(result.mismatches, 1u);
+		if (slot == 0u) {
+			result.first_bad_page = page;
+			result.first_bad_local = local_index;
+		}
+	}
+}

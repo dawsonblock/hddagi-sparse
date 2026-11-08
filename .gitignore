@@ -3,3 +3,4 @@ artifacts/*.tmp
 __pycache__/
 tests/renderer_hddagi_sparse/build/
 tests/renderer_hddagi_sparse/build-san/
+gpu/build/

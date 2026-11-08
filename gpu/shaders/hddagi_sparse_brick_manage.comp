@@ -1,0 +1,126 @@
+// M2.03 — request compaction, allocation and initialisation, GPU-shaped.
+//
+// Three modes share one dispatch layout so the host can issue them back to back
+// without rebinding:
+//   MODE_COMPACT      build a compacted list of requested virtual slots
+//   MODE_ALLOCATE     hand out physical pages from the free list
+//   MODE_INITIALIZE   promote ALLOCATED pages to COMMITTED after zeroing
+//
+// Allocation order is deliberately atomic and therefore NOT deterministic across
+// runs. Translation (the probe shader) is deterministic and is what fixtures pin;
+// allocation is validated by invariants instead, which is why the M1 oracle cannot
+// be compared page-for-page with this path.
+
+#version 450
+
+layout(local_size_x = 64) in;
+
+#define MODE_COMPACT 0u
+#define MODE_ALLOCATE 1u
+#define MODE_INITIALIZE 2u
+
+layout(set = 0, binding = 0, std430) buffer PageTable { PageEntry entries[]; } table;
+layout(set = 0, binding = 1, std430) buffer Meta { BrickMeta meta[]; } metadata;
+layout(set = 0, binding = 2, std430) readonly buffer FreeList { uint pages[]; } free_list;
+layout(set = 0, binding = 3, std430) buffer FreeCursor { uint value; } free_cursor;
+layout(set = 0, binding = 4, std430) readonly buffer RequestBits { uint words[]; } requests;
+layout(set = 0, binding = 5, std430) buffer Compacted { uint slots[]; } compacted;
+layout(set = 0, binding = 6, std430) buffer Counters {
+	uint requested;
+	uint compacted_count;
+	uint allocated;
+	uint overflow;
+	uint committed;
+	uint pad0;
+	uint pad1;
+	uint pad2;
+} counters;
+layout(set = 0, binding = 7, std430) buffer AllocatedSlots { uint slots[]; } allocated_slots;
+
+layout(push_constant) uniform PC {
+	uint mode;
+	uint word_count;
+	uint slot_count;
+	uint capacity;
+	uint epoch;
+	uint generation_base;
+	uint bricks_per_cascade;
+	uint brick_dim_x;
+	uint brick_dim_y;
+	uint brick_dim_z;
+} pc;
+
+// One invocation per 32-bit request word. Order within a word is stable; order
+// between words is not, because the destination index comes from an atomic.
+void compact_requests(uint word_index) {
+	uint word = requests.words[word_index];
+	uint base = word_index * 32u;
+	while (word != 0u) {
+		int bit = findLSB(word);
+		uint slot = base + uint(bit);
+		if (slot < pc.slot_count) {
+			uint index = atomicAdd(counters.compacted_count, 1u);
+			compacted.slots[index] = slot;
+		}
+		word &= word - 1u;
+	}
+}
+
+void allocate_one(uint index) {
+	uint slot = compacted.slots[index];
+	uint cursor = atomicAdd(free_cursor.value, 1u);
+	if (cursor >= pc.capacity) {
+		// A full pool is a controlled state: record it, mark the slot, and never
+		// hand out a page that is already owned.
+		atomicAdd(counters.overflow, 1u);
+		table.entries[slot].state = SB_STATE_OVERFLOWED;
+		return;
+	}
+
+	uint page = free_list.pages[cursor];
+	uint generation = pc.generation_base + index;
+
+	table.entries[slot].page_id = page;
+	table.entries[slot].generation = generation;
+	table.entries[slot].state = SB_STATE_ALLOCATED;
+
+	metadata.meta[page].generation = generation;
+	metadata.meta[page].state = SB_STATE_ALLOCATED;
+	metadata.meta[page].last_write_epoch = pc.epoch;
+	metadata.meta[page].retired_epoch = 0u;
+
+	allocated_slots.slots[cursor] = slot;
+	atomicAdd(counters.allocated, 1u);
+}
+
+// Runs after the host has zeroed the page. INITIALIZING is the only path to
+// COMMITTED, so no reader can observe an uninitialised page.
+void initialize_one(uint cursor) {
+	uint slot = allocated_slots.slots[cursor];
+	uint page = table.entries[slot].page_id;
+	if (page == SB_INVALID_PAGE) {
+		return;
+	}
+	table.entries[slot].state = SB_STATE_COMMITTED;
+	metadata.meta[page].state = SB_STATE_COMMITTED;
+	metadata.meta[page].last_write_epoch = pc.epoch;
+	atomicAdd(counters.committed, 1u);
+}
+
+void main() {
+	uint index = gl_GlobalInvocationID.x;
+
+	if (pc.mode == MODE_COMPACT) {
+		if (index < pc.word_count) {
+			compact_requests(index);
+		}
+	} else if (pc.mode == MODE_ALLOCATE) {
+		if (index < counters.compacted_count) {
+			allocate_one(index);
+		}
+	} else if (pc.mode == MODE_INITIALIZE) {
+		if (index < counters.allocated) {
+			initialize_one(index);
+		}
+	}
+}

@@ -1,0 +1,22 @@
+{
+  "count": 1180,
+  "record_bytes": 80,
+  "layout": {
+    "size": [
+      128,
+      64,
+      128
+    ],
+    "bricks": [
+      16,
+      8,
+      16
+    ],
+    "cascades": 2,
+    "brick_edge": 8
+  },
+  "atlas_page_slots": [
+    8,
+    8
+  ]
+}

@@ -1,0 +1,37 @@
+// M2.05, write half — fill the physical atlas with a unique, addressable pattern.
+//
+// The encoding is a bijection, not a hash: value = (page << 9) | local_index.
+// Any two distinct (page, local) pairs therefore produce distinct values, so a
+// mis-addressed write is visible as a wrong value rather than as noise.
+//
+// The read half is canary_check.comp. Decode parity against the engine's
+// E5B9G9R9 shared view cannot be established without a GPU and is out of scope
+// for this file; it is tracked in artifacts/m2_scaffold.md.
+
+#version 450
+
+layout(local_size_x = 64) in;
+
+layout(set = 0, binding = 0, r32ui) uniform uimage3D atlas;
+
+layout(push_constant) uniform PC {
+	uint page_count;
+	uint page_slots_x;
+	uint page_slots_y;
+} pc;
+
+void main() {
+	uint index = gl_GlobalInvocationID.x;
+	uint total = pc.page_count * 512u;
+	if (index >= total) {
+		return;
+	}
+
+	uint page = index / 512u;
+	uint local_index = index % 512u;
+	ivec3 local_in_brick = ivec3(int(local_index & 7u), int((local_index >> 3) & 7u), int((local_index >> 6) & 7u));
+	ivec3 texel = sb_atlas_texel(page, local_in_brick, ivec2(pc.page_slots_x, pc.page_slots_y));
+
+	uint value = (page << 9) | local_index;
+	imageStore(atlas, texel, uvec4(value));
+}
