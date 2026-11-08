@@ -1,0 +1,603 @@
+--- godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp	2026-09-04 12:34:44
++++ hddagi-build/godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp	2026-11-07 20:38:58
+@@ -352,6 +352,107 @@
+ 	return texture;
+ }
+ 
++
++#include "hddagi_sparse_plan.h"
++
++// One-shot capability probe for the sparse-brick path. It creates and frees a few
++// 1x1x1 textures because this RenderingDevice API has no format-support query; the
++// only reliable test is to ask the driver to allocate the exact format and usage.
++//
++// Prints one line per decision so a log from any backend answers "would sparse mode
++// be accepted here, and at what capacity" without a debugger.
++static void _hddagi_probe_sparse_support(int p_cascades, const Vector3i &p_cascade_size) {
++	static bool already_probed = false;
++	if (already_probed) {
++		return;
++	}
++	already_probed = true;
++
++	RD *rd = RD::get_singleton();
++	hddagi_sparse::DeviceCaps caps;
++	caps.max_texture_size_3d = rd->limit_get(RD::LIMIT_MAX_TEXTURE_SIZE_3D);
++	caps.max_storage_buffers_per_set = rd->limit_get(RD::LIMIT_MAX_STORAGE_BUFFERS_PER_UNIFORM_SET);
++	caps.max_storage_images_per_set = rd->limit_get(RD::LIMIT_MAX_STORAGE_IMAGES_PER_UNIFORM_SET);
++	caps.max_push_constant_size = rd->limit_get(RD::LIMIT_MAX_PUSH_CONSTANT_SIZE);
++	caps.max_compute_workgroups_x = rd->limit_get(RD::LIMIT_MAX_COMPUTE_WORKGROUP_COUNT_X);
++
++	{
++		RD::TextureFormat tf;
++		tf.format = RD::DATA_FORMAT_R32_UINT;
++		tf.texture_type = RD::TEXTURE_TYPE_3D;
++		tf.width = 1;
++		tf.height = 1;
++		tf.depth = 1;
++		tf.usage_bits = RD::TEXTURE_USAGE_STORAGE_BIT | RD::TEXTURE_USAGE_SAMPLING_BIT;
++		// The base format must be listed alongside the override, exactly as the dense
++		// light texture does at gi.cpp:463-464. Omitting it makes texture_create fail
++		// with "the current format must be present in the list".
++		tf.shareable_formats.push_back(RD::DATA_FORMAT_E5B9G9R9_UFLOAT_PACK32);
++		tf.shareable_formats.push_back(RD::DATA_FORMAT_R32_UINT);
++		RID base = rd->texture_create(tf, RD::TextureView());
++		if (rd->texture_is_valid(base)) {
++			caps.r32_uint_3d_storage = true;
++			RD::TextureView tv;
++			tv.format_override = RD::DATA_FORMAT_E5B9G9R9_UFLOAT_PACK32;
++			RID shared = rd->texture_create_shared(tv, base);
++			caps.e5b9g9r9_shareable_view = rd->texture_is_valid(shared);
++			if (caps.e5b9g9r9_shareable_view) {
++				rd->free_rid(shared);
++			}
++			rd->free_rid(base);
++		}
++	}
++	{
++		RD::TextureFormat tf;
++		tf.format = RD::DATA_FORMAT_R8_UINT;
++		tf.texture_type = RD::TEXTURE_TYPE_3D;
++		tf.width = 1;
++		tf.height = 1;
++		tf.depth = 1;
++		tf.usage_bits = RD::TEXTURE_USAGE_STORAGE_BIT;
++		RID base = rd->texture_create(tf, RD::TextureView());
++		caps.r8_uint_3d_storage = rd->texture_is_valid(base);
++		if (caps.r8_uint_3d_storage) {
++			rd->free_rid(base);
++		}
++	}
++	{
++		RID b = rd->storage_buffer_create(16);
++		caps.storage_buffer = b.is_valid();
++		if (caps.storage_buffer) {
++			rd->free_rid(b);
++		}
++	}
++
++	hddagi_sparse::SparseRequest req;
++	req.cascade_count = p_cascades;
++	req.grid[0] = p_cascade_size.x;
++	req.grid[1] = p_cascade_size.y;
++	req.grid[2] = p_cascade_size.z;
++	req.requested_pages = 1024;
++
++	const hddagi_sparse::SparsePlan plan = hddagi_sparse::plan_sparse_resources(caps, req);
++	const char *decision = plan.decision == hddagi_sparse::Decision::SUPPORTED ? "SUPPORTED" : (plan.decision == hddagi_sparse::Decision::REDUCED_CAPACITY ? "REDUCED_CAPACITY" : "REFUSED");
++
++	print_line(vformat("HDDAGI sparse probe: %s (check %d) - %s", decision, int(plan.failed_check), String(plan.reason)));
++	auto limit_str = [](uint64_t v) {
++		return v >= (uint64_t(1) << 30) ? String("unbounded") : itos(int64_t(v));
++	};
++	print_line(vformat("  caps: 3d_extent=%s storage_buffers_per_set=%s push_constant=%s workgroups_x=%s",
++			limit_str(caps.max_texture_size_3d), limit_str(caps.max_storage_buffers_per_set),
++			limit_str(caps.max_push_constant_size), limit_str(caps.max_compute_workgroups_x)));
++	print_line(vformat("  formats: R32_UINT_3D=%s R8_UINT_3D=%s E5B9G9R9_view=%s storage_buffer=%s",
++			caps.r32_uint_3d_storage ? "yes" : "no", caps.r8_uint_3d_storage ? "yes" : "no",
++			caps.e5b9g9r9_shareable_view ? "yes" : "no", caps.storage_buffer ? "yes" : "no"));
++	if (plan.decision != hddagi_sparse::Decision::REFUSED) {
++		print_line(vformat("  plan: virtual_pages=%d capacity=%d slots=%dx%dx%d atlas_texels=%dx%dx%d total=%.2f MiB",
++				int(plan.virtual_pages), int(plan.capacity),
++				plan.page_slots[0], plan.page_slots[1], plan.page_slots[2],
++				plan.atlas_texels[0], plan.atlas_texels[1], plan.atlas_texels[2],
++				double(plan.total_bytes) / (1024.0 * 1024.0)));
++	}
++}
++
+ void GI::HDDAGI::create(RID p_env, const Vector3 &p_world_anchor, const Vector3 &p_planar_world_forward, float p_cascade_forward_offset, uint32_t p_requested_history_size, GI *p_gi) {
+ 	//RendererRD::TextureStorage *texture_storage = RendererRD::TextureStorage::get_singleton();
+ 	//RendererRD::MaterialStorage *material_storage = RendererRD::MaterialStorage::get_singleton();
+@@ -394,8 +495,12 @@
+ 	version = gi->hddagi_current_version;
+ 	cascades.resize(num_cascades);
+ 
+-	solid_cell_ratio = gi->hddagi_solid_cell_ratio;
++	solid_cell_ratio = CLAMP(float(GLOBAL_GET("rendering/global_illumination/hddagi/solid_cell_ratio")), 0.01f, 1.0f);
+ 	solid_cell_count = uint32_t(float(cascade_size.x * cascade_size.y * cascade_size.z) * solid_cell_ratio);
++	print_line(vformat("HDDAGI_PROCESS_BUDGET ratio=%.3f cells_per_cascade=%d bytes_per_buffer=%.2f MiB total_buffers=%.2f MiB (7 buffers)",
++			double(solid_cell_ratio), int(solid_cell_count),
++			double(solid_cell_count) * 16.0 / (1024.0 * 1024.0),
++			double(solid_cell_count) * 16.0 * 7.0 / (1024.0 * 1024.0)));
+ 
+ 	float base_cell_size = min_cell_size;
+ 
+@@ -646,6 +751,8 @@
+ 	probe_bias = RendererSceneRenderRD::get_singleton()->environment_get_hddagi_probe_bias(p_env);
+ 	occlusion_bias = RendererSceneRenderRD::get_singleton()->environment_get_hddagi_occlusion_bias(p_env);
+ 	reads_sky = RendererSceneRenderRD::get_singleton()->environment_get_hddagi_read_sky_light(p_env);
++
++	_hddagi_probe_sparse_support(num_cascades, cascade_size);
+ }
+ 
+ void GI::HDDAGI::render_region(Ref<RenderSceneBuffersRD> p_render_buffers, int p_region, const PagedArray<RenderGeometryInstance *> &p_instances, float p_exposure_normalization) {
+@@ -1179,6 +1286,22 @@
+ 		idx++;
+ 	}
+ 
++	// TEMPORARY MEASUREMENT: process-cell usage per cascade, read at the start of a
++	// frame so the previous frame's light-store dispatch has actually completed.
++	// This is the number that decides whether solid_cell_ratio can be lowered.
++	if (update_frame == 2 || update_frame == 40) {
++		for (int i = 0; i < int(cascades.size()); i++) {
++			Vector<uint8_t> cells = RD::get_singleton()->buffer_get_data(cascades[i].light_process_dispatch_buffer);
++			if (cells.size() >= 16) {
++				uint32_t v[4] = { 0, 0, 0, 0 };
++				memcpy(v, cells.ptr(), 16);
++				print_line(vformat("HDDAGI_PROCESS_CELLS frame=%d cascade=%d total=%d groups_x=%d capacity=%d used=%.2f%%",
++						int(update_frame), i, int(v[3]), int(v[0]), int(solid_cell_count),
++						double(v[3]) * 100.0 / double(solid_cell_count)));
++			}
++		}
++	}
++
+ 	update_frame++;
+ }
+ 
+--- godot-dynamic_gi_2/servers/rendering/rendering_server.cpp	2026-09-04 12:34:44
++++ hddagi-build/godot-dynamic_gi_2/servers/rendering/rendering_server.cpp	2026-11-07 20:38:58
+@@ -3825,6 +3825,12 @@
+ 		project_settings->set_setting(light_update_setting, old_value);
+ 	}
+ #endif
++
++	// Fraction of the voxel count used to pre-size the per-cascade light-process
++	// work lists. Measured usage in a simple scene is ~2.6% of voxels, so 0.5 is a
++	// very conservative worst case; lowering it trades memory for cells dropped
++	// when a scene is denser than the cap.
++	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/global_illumination/hddagi/solid_cell_ratio", PROPERTY_HINT_RANGE, "0.01,1.0,0.01"), 0.5);
+ 
+ 	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_converge", PROPERTY_HINT_ENUM, "6 (Less Latency/Mem usage & Low Quality),12,18,24,32 (More Latency / Mem Usage & High Quality)"), 1);
+ 	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_update_lights", PROPERTY_HINT_ENUM, "1 (Faster),2,4,8,16 (Slower)"), 2);
+--- a/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.h	2026-11-07 20:39:54
++++ b/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.h
+@@ -0,0 +1,181 @@
++// M2.01 / M2.04 decision core, free of RenderingDevice dependencies.
++//
++// The engine side of sparse bricks splits cleanly in two:
++//
++//   1. decide whether this device can support the mode, and at what capacity;
++//   2. decide how many workgroups to dispatch and what push constants to send.
++//
++// Both are pure arithmetic over numbers the adapter reads from RenderingDevice.
++// Keeping them here means they can be compiled and tested on a host with no GPU,
++// and the Windows integration only has to supply the numbers and bind the RIDs.
++//
++// This file does not include rendering_device.h on purpose. The adapter that
++// fills DeviceCaps lives in RD_ADAPTER.md.
++
++#pragma once
++
++#include <cstdint>
++
++namespace hddagi_sparse {
++
++constexpr int BRICK_EDGE = 8;
++constexpr uint32_t VOXELS_PER_BRICK = 512;
++constexpr uint32_t WORKGROUP_SIZE = 64;
++
++// Byte sizes of the records the shaders consume. Kept in sync with
++// gpu/hddagi_sparse_gpu_model.h by static_assert there and by test here.
++constexpr uint32_t PAGE_ENTRY_BYTES = 16;
++constexpr uint32_t BRICK_META_BYTES = 32;
++constexpr uint32_t COUNTERS_BYTES = 32;
++constexpr uint32_t CHECK_RESULT_BYTES = 16;
++
++// What the adapter must discover before sparse mode can be considered.
++//
++// Format/usage support cannot be queried directly in this RenderingDevice API.
++// The adapter probes each one by creating a 1x1x1 texture with the exact format
++// and usage, checking texture_is_valid(), and freeing it. These fields are the
++// results of those probes, not assumptions.
++struct DeviceCaps {
++	uint64_t max_texture_size_3d = 0;
++	uint64_t max_storage_buffers_per_set = 0;
++	uint64_t max_storage_images_per_set = 0;
++	uint64_t max_push_constant_size = 0;
++	uint64_t max_compute_workgroups_x = 0;
++
++	bool r32_uint_3d_storage = false;
++	bool r8_uint_3d_storage = false;
++	bool e5b9g9r9_shareable_view = false;
++	bool storage_buffer = false;
++};
++
++struct SparseRequest {
++	int cascade_count = 6;
++	int grid[3] = { 128, 64, 128 };
++	uint32_t requested_pages = 1024;
++};
++
++enum class Decision : uint32_t {
++	SUPPORTED = 0,
++	REDUCED_CAPACITY = 1,
++	REFUSED = 2,
++};
++
++// Check ids match the capability table in artifacts/m2_scaffold.md.
++enum class Check : uint32_t {
++	NONE = 0,
++	LIGHT_FORMAT = 1,
++	DISOCLUSION_FORMAT = 2,
++	SHARED_LIGHT_VIEW = 3,
++	ATLAS_EXTENT = 4,
++	STORAGE_BUFFER = 5,
++	PUSH_CONSTANTS = 6,
++	DESCRIPTOR_BUDGET = 7,
++};
++
++struct SparsePlan {
++	Decision decision = Decision::REFUSED;
++	Check failed_check = Check::NONE;
++	const char *reason = "";
++
++	uint32_t virtual_pages = 0;
++	uint32_t capacity = 0; // pages actually allocated after any reduction
++	int page_slots[3] = { 0, 0, 0 };
++	int atlas_texels[3] = { 0, 0, 0 };
++
++	uint64_t light_atlas_bytes = 0;
++	uint64_t neighbour_atlas_bytes = 0;
++	uint64_t disocclusion_atlas_bytes = 0;
++	uint64_t page_table_bytes = 0;
++	uint64_t meta_bytes = 0;
++	uint64_t request_bitset_bytes = 0;
++	uint64_t compacted_bytes = 0;
++	uint64_t free_list_bytes = 0;
++	uint64_t total_bytes = 0;
++};
++
++// Largest page-slot factorisation whose product is >= capacity and whose axes
++// stay within max_slots. Returns false when not even one page fits.
++bool factorise_slots(uint32_t capacity, uint32_t max_slots, int out[3]);
++
++// Maximum number of pages that can be addressed given an axis limit.
++uint32_t max_pages_for_slots(uint32_t max_slots);
++
++SparsePlan plan_sparse_resources(const DeviceCaps &caps, const SparseRequest &request);
++
++// ---------------------------------------------------------------------------
++// Dispatch planning (M2.04)
++// ---------------------------------------------------------------------------
++
++// Push constant blocks, laid out exactly as the shaders declare them.
++struct ProbePushConstants {
++	uint32_t count;
++	uint32_t grid_x;
++	uint32_t grid_y;
++	uint32_t grid_z;
++	uint32_t cascade_count;
++	uint32_t brick_dim_x;
++	uint32_t brick_dim_y;
++	uint32_t brick_dim_z;
++	uint32_t page_slots_x;
++	uint32_t page_slots_y;
++};
++
++struct ManagePushConstants {
++	uint32_t mode;
++	uint32_t word_count;
++	uint32_t slot_count;
++	uint32_t capacity;
++	uint32_t epoch;
++	uint32_t generation_base;
++	uint32_t bricks_per_cascade;
++	uint32_t brick_dim_x;
++	uint32_t brick_dim_y;
++	uint32_t brick_dim_z;
++};
++
++struct CanaryPushConstants {
++	uint32_t page_count;
++	uint32_t page_slots_x;
++	uint32_t page_slots_y;
++	uint32_t offset; // first linear index for this pass; lets a large pool be split
++};
++
++static_assert(sizeof(ProbePushConstants) == 40, "probe push constants must be 40 bytes");
++static_assert(sizeof(ManagePushConstants) == 40, "manage push constants must be 40 bytes");
++static_assert(sizeof(CanaryPushConstants) == 16, "canary push constants must be 16 bytes");
++
++enum : uint32_t {
++	MODE_COMPACT = 0,
++	MODE_ALLOCATE = 1,
++	MODE_INITIALIZE = 2,
++};
++
++struct DispatchPlan {
++	uint32_t probe_groups = 0;
++	uint32_t compact_groups = 0;
++	uint32_t allocate_groups = 0;
++	uint32_t initialize_groups = 0;
++
++	// The canary pass scales with capacity * 512, so it can exceed the device's
++	// workgroup-count limit. The host issues `canary_passes` dispatches of at most
++	// `canary_groups` groups each, advancing `canary.offset` by groups * 64.
++	uint32_t canary_total_groups = 0;
++	uint32_t canary_groups = 0;
++	uint32_t canary_passes = 0;
++
++	ProbePushConstants probe{};
++	ManagePushConstants compact{};
++	ManagePushConstants allocate{};
++	ManagePushConstants initialize{};
++	CanaryPushConstants canary{};
++};
++
++inline uint32_t groups_for(uint32_t items) {
++	return (items + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
++}
++
++DispatchPlan plan_dispatch(const SparsePlan &plan, uint32_t fixture_count,
++		uint32_t epoch, uint32_t generation_base, int cascade_count, const int grid[3],
++		uint32_t max_workgroups_x = 65535);
++
++} // namespace hddagi_sparse
+--- a/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.cpp	2026-11-07 20:39:54
++++ b/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.cpp
+@@ -0,0 +1,245 @@
++#include "hddagi_sparse_plan.h"
++
++#include <algorithm>
++#include <cmath>
++
++namespace hddagi_sparse {
++
++uint32_t max_pages_for_slots(uint32_t max_slots) {
++	// Three axes of page slots, each axis limited by the 3D extent.
++	const uint64_t v = uint64_t(max_slots) * uint64_t(max_slots) * uint64_t(max_slots);
++	return v > 0xFFFFFFFFull ? 0xFFFFFFFFu : uint32_t(v);
++}
++
++bool factorise_slots(uint32_t capacity, uint32_t max_slots, int out[3]) {
++	if (capacity == 0 || max_slots == 0) {
++		return false;
++	}
++	if (uint64_t(capacity) > uint64_t(max_slots) * max_slots * max_slots) {
++		return false;
++	}
++
++	// Prefer a near-cubic split: it minimises the longest axis, which is what
++	// texture extent limits constrain first. The search is bounded around the cube
++	// root because a very lopsided split wastes slots for no benefit, and an
++	// unbounded scan would be O(max_slots^2) at startup.
++	uint32_t best_slots = 0;
++	int best[3] = { 0, 0, 0 };
++
++	const double cube_root = std::cbrt(double(capacity));
++	uint32_t limit = uint32_t(cube_root * 2.0) + 2;
++	if (limit < 4) {
++		limit = 4;
++	}
++	if (limit > max_slots) {
++		limit = max_slots;
++	}
++
++	for (uint32_t px = 1; px <= limit; px++) {
++		const uint32_t remaining = (capacity + px - 1) / px;
++		if (remaining == 0) {
++			break;
++		}
++		for (uint32_t py = 1; py <= limit; py++) {
++			const uint32_t pz = (remaining + py - 1) / py;
++			if (pz > max_slots) {
++				continue;
++			}
++			const uint32_t slots = px * py * pz;
++			if (slots < capacity) {
++				continue;
++			}
++			// Fewer slots wins. On a tie, prefer the shorter longest axis (the 3D
++			// extent limit constrains that first), then the larger shortest axis,
++			// which rejects lopsided splits such as 4x16x16 in favour of 8x8x16.
++			const int longest = int(std::max(px, std::max(py, pz)));
++			const int shortest = int(std::min(px, std::min(py, pz)));
++			const int best_longest = std::max(best[0], std::max(best[1], best[2]));
++			const int best_shortest = std::min(best[0], std::min(best[1], best[2]));
++			const bool better = best_slots == 0 || slots < best_slots ||
++					(slots == best_slots && (longest < best_longest ||
++							(longest == best_longest && shortest > best_shortest)));
++			if (better) {
++				best_slots = slots;
++				best[0] = int(px);
++				best[1] = int(py);
++				best[2] = int(pz);
++			}
++		}
++	}
++
++	if (best_slots == 0) {
++		return false;
++	}
++	out[0] = best[0];
++	out[1] = best[1];
++	out[2] = best[2];
++	return true;
++}
++
++SparsePlan plan_sparse_resources(const DeviceCaps &caps, const SparseRequest &request) {
++	SparsePlan plan;
++	plan.virtual_pages = uint32_t(request.cascade_count) *
++			uint32_t((request.grid[0] / BRICK_EDGE) * (request.grid[1] / BRICK_EDGE) * (request.grid[2] / BRICK_EDGE));
++
++	// Checks 1-3: the three formats and the shared view. A device that cannot do
++	// all three cannot host the payload group at all, so there is no partial mode.
++	if (!caps.r32_uint_3d_storage) {
++		plan.decision = Decision::REFUSED;
++		plan.failed_check = Check::LIGHT_FORMAT;
++		plan.reason = "3D R32_UINT storage image unsupported";
++		return plan;
++	}
++	if (!caps.r8_uint_3d_storage) {
++		plan.decision = Decision::REFUSED;
++		plan.failed_check = Check::DISOCLUSION_FORMAT;
++		plan.reason = "3D R8_UINT storage image unsupported";
++		return plan;
++	}
++	if (!caps.e5b9g9r9_shareable_view) {
++		plan.decision = Decision::REFUSED;
++		plan.failed_check = Check::SHARED_LIGHT_VIEW;
++		plan.reason = "E5B9G9R9 shared sampled view unsupported; decode parity would be unprovable";
++		return plan;
++	}
++	if (!caps.storage_buffer) {
++		plan.decision = Decision::REFUSED;
++		plan.failed_check = Check::STORAGE_BUFFER;
++		plan.reason = "storage buffers unsupported";
++		return plan;
++	}
++
++	// Check 4: atlas extent. Reduce capacity rather than refuse, because a smaller
++	// pool is still correct; the RFC requires the reduction to be recorded.
++	if (caps.max_texture_size_3d < BRICK_EDGE) {
++		plan.decision = Decision::REFUSED;
++		plan.failed_check = Check::ATLAS_EXTENT;
++		plan.reason = "3D texture extent smaller than one brick";
++		return plan;
++	}
++	const uint32_t max_slots = uint32_t(caps.max_texture_size_3d / BRICK_EDGE);
++	const uint32_t max_pages = max_pages_for_slots(max_slots);
++
++	uint32_t capacity = request.requested_pages;
++	bool reduced = false;
++	if (capacity == 0) {
++		capacity = 1;
++	}
++	if (capacity > max_pages) {
++		capacity = max_pages;
++		reduced = true;
++	}
++
++	int slots[3] = { 0, 0, 0 };
++	if (!factorise_slots(capacity, max_slots, slots)) {
++		plan.decision = Decision::REFUSED;
++		plan.failed_check = Check::ATLAS_EXTENT;
++		plan.reason = "no page-slot factorisation fits the 3D extent limit";
++		return plan;
++	}
++
++	// Check 6: the manage shader's push constant block.
++	if (caps.max_push_constant_size < sizeof(ManagePushConstants)) {
++		plan.decision = Decision::REFUSED;
++		plan.failed_check = Check::PUSH_CONSTANTS;
++		plan.reason = "push constant limit below the manage block size";
++		return plan;
++	}
++
++	// Check 7: the manage shader binds eight storage buffers in set 0.
++	if (caps.max_storage_buffers_per_set < 8) {
++		plan.decision = Decision::REFUSED;
++		plan.failed_check = Check::DESCRIPTOR_BUDGET;
++		plan.reason = "fewer than eight storage buffers per set";
++		return plan;
++	}
++
++	const uint32_t slots_total = uint32_t(slots[0]) * uint32_t(slots[1]) * uint32_t(slots[2]);
++
++	plan.capacity = capacity;
++	plan.page_slots[0] = slots[0];
++	plan.page_slots[1] = slots[1];
++	plan.page_slots[2] = slots[2];
++	plan.atlas_texels[0] = slots[0] * BRICK_EDGE;
++	plan.atlas_texels[1] = slots[1] * BRICK_EDGE;
++	plan.atlas_texels[2] = slots[2] * BRICK_EDGE;
++
++	// Atlas cost is driven by allocated slots, not by requested pages: the slack
++	// from rounding up to whole page slots is real memory.
++	plan.light_atlas_bytes = uint64_t(slots_total) * VOXELS_PER_BRICK * 4ull;
++	plan.neighbour_atlas_bytes = uint64_t(slots_total) * VOXELS_PER_BRICK * 4ull;
++	plan.disocclusion_atlas_bytes = uint64_t(slots_total) * VOXELS_PER_BRICK * 1ull;
++
++	plan.page_table_bytes = uint64_t(plan.virtual_pages) * PAGE_ENTRY_BYTES;
++	plan.meta_bytes = uint64_t(capacity) * BRICK_META_BYTES;
++	plan.request_bitset_bytes = (uint64_t(plan.virtual_pages) + 7) / 8;
++	plan.compacted_bytes = uint64_t(capacity) * 4;
++	plan.free_list_bytes = uint64_t(capacity) * 4;
++
++	plan.total_bytes = plan.light_atlas_bytes + plan.neighbour_atlas_bytes +
++			plan.disocclusion_atlas_bytes + plan.page_table_bytes + plan.meta_bytes +
++			plan.request_bitset_bytes + plan.compacted_bytes + plan.free_list_bytes +
++			COUNTERS_BYTES;
++
++	if (reduced) {
++		plan.decision = Decision::REDUCED_CAPACITY;
++		plan.reason = "requested page count exceeds what the 3D extent limit can address";
++	} else {
++		plan.decision = Decision::SUPPORTED;
++		plan.reason = "all capability checks passed";
++	}
++	return plan;
++}
++
++DispatchPlan plan_dispatch(const SparsePlan &plan, uint32_t fixture_count,
++		uint32_t epoch, uint32_t generation_base, int cascade_count, const int grid[3],
++		uint32_t max_workgroups_x) {
++	DispatchPlan d;
++
++	d.probe_groups = groups_for(fixture_count);
++	d.probe.count = fixture_count;
++	d.probe.grid_x = uint32_t(grid[0]);
++	d.probe.grid_y = uint32_t(grid[1]);
++	d.probe.grid_z = uint32_t(grid[2]);
++	d.probe.cascade_count = uint32_t(cascade_count);
++	d.probe.brick_dim_x = uint32_t(grid[0] / BRICK_EDGE);
++	d.probe.brick_dim_y = uint32_t(grid[1] / BRICK_EDGE);
++	d.probe.brick_dim_z = uint32_t(grid[2] / BRICK_EDGE);
++	d.probe.page_slots_x = uint32_t(plan.page_slots[0]);
++	d.probe.page_slots_y = uint32_t(plan.page_slots[1]);
++
++	const uint32_t word_count = (plan.virtual_pages + 31) / 32;
++	const uint32_t bricks_per_cascade = uint32_t((grid[0] / BRICK_EDGE) * (grid[1] / BRICK_EDGE) * (grid[2] / BRICK_EDGE));
++
++	d.compact_groups = groups_for(word_count);
++	// Allocate must cover the compacted list, which is bounded by the virtual slot
++	// count, not by capacity. Dispatching only `capacity` threads silently ignores
++	// every request beyond the pool size, so overflow is never counted and the host
++	// never learns the pool is too small. The shader guards the tail.
++	d.allocate_groups = groups_for(plan.virtual_pages);
++	d.initialize_groups = groups_for(plan.capacity);
++	d.canary_total_groups = groups_for(plan.capacity * VOXELS_PER_BRICK);
++	const uint32_t limit = max_workgroups_x == 0 ? 1u : max_workgroups_x;
++	d.canary_groups = d.canary_total_groups < limit ? d.canary_total_groups : limit;
++	d.canary_passes = d.canary_total_groups == 0 ? 0u : (d.canary_total_groups + limit - 1) / limit;
++
++	const uint32_t common[10] = { 0, word_count, plan.virtual_pages, plan.capacity, epoch,
++		generation_base, bricks_per_cascade, uint32_t(grid[0] / BRICK_EDGE),
++		uint32_t(grid[1] / BRICK_EDGE), uint32_t(grid[2] / BRICK_EDGE) };
++
++	d.compact = ManagePushConstants{ MODE_COMPACT, common[1], common[2], common[3], common[4],
++		common[5], common[6], common[7], common[8], common[9] };
++	d.allocate = ManagePushConstants{ MODE_ALLOCATE, common[1], common[2], common[3], common[4],
++		common[5], common[6], common[7], common[8], common[9] };
++	d.initialize = ManagePushConstants{ MODE_INITIALIZE, common[1], common[2], common[3], common[4],
++		common[5], common[6], common[7], common[8], common[9] };
++
++	d.canary.page_count = plan.capacity;
++	d.canary.page_slots_x = uint32_t(plan.page_slots[0]);
++	d.canary.page_slots_y = uint32_t(plan.page_slots[1]);
++	d.canary.offset = 0; // the host advances this per pass
++
++	return d;
++}
++
++} // namespace hddagi_sparse

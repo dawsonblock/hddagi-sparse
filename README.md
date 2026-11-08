@@ -17,6 +17,8 @@ artifacts/
   decision.md             M0.09 record: what passed, what is blocked, recommendation
   m1_report.md            M1 record: semantics, test inventory, mutation evidence
   m2_scaffold.md          M2 scaffold: capability table, shader map, integration recipe
+  macos_bringup.md        engine builds and HDDAGI renders on Metal
+  light_process_buffers.md measured 56 -> 5.6 MiB with an identical frame
 tests/renderer_hddagi_sparse/
   hddagi_brick_layout.h       grid, coordinate conversion, atlas addressing
   hddagi_brick_allocator.*    page table, states, generations, scroll replay
@@ -25,7 +27,7 @@ tests/renderer_hddagi_sparse/
   fixtures/                   deterministic GPU-facing vectors
 engine/
   hddagi_sparse_plan.h/.cpp   capability checks + dispatch planning, no RD dependency
-  test_sparse_plan.cpp        14 cases
+  test_sparse_plan.cpp        15 cases
   RD_ADAPTER.md               uncompiled RenderingDevice integration recipe
 gpu/
   shaders/                    four compute shaders, compiled and SPIR-V validated
@@ -33,6 +35,12 @@ gpu/
   test_gpu_model.cpp          7 cases: fixture parity, allocator invariants, canary
   make_fixture_bin.py         JSON fixtures -> 80-byte binary records
   build.sh                    compile shaders + validate + run twin tests
+  run_gpu_tests.sh            execute the kernels on this GPU (Metal)
+  metal/                      Swift harnesses for probe, canary and allocator
+platform/
+  engine_changes.patch        every engine change as a diff against the supplied tree
+  build_and_run.sh            build in a copy, run the smoke project
+  test_project/               HDDAGI smoke scene with frame capture
 tools/
   make_manifest.py        M0.01
   hddagi_allocations.py   M0.04
