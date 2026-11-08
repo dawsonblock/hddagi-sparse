@@ -111,10 +111,34 @@ the question is actually about.
 
 ## Recommendation
 
-Ship the setting. Default **0.10**: 44.8 MiB saved on a dense forest with 1.49x
-headroom and no measurable image change. Keep 0.25 available for scenes that are
-denser than this one, and do not go below 0.10 without measuring the specific scene,
-because the drop is no longer free once capacity falls under demand.
+Ship the setting with a default of **0.25**: 28 MiB saved, 3.7x headroom over the
+densest scene measured, and 528 changed pixels out of 746,496.
+
+**0.10 is the measured floor** for this forest — 44.8 MiB, 1.49x headroom, still no
+measurable image change. It is not the default because 1.49x is thin for a scene
+nobody has measured, and a global default has to be safe on content we have not seen.
+
+## Measuring your own scene
+
+```
+rendering/global_illumination/hddagi/debug_process_cells=true
+rendering/global_illumination/hddagi/solid_cell_ratio=0.25
+```
+
+Run the scene and read:
+
+```
+HDDAGI_PROCESS_BUDGET ratio=0.250 cells_per_cascade=262144 total_buffers=28.00 MiB
+HDDAGI_PROCESS_CELLS frame=40 cascade=0 total=70355 capacity=262144 used=26.84%
+```
+
+`total` is the true demand — it counts cells found before the cap, so it does not
+change when the ratio changes. Pick a ratio that keeps `used` under about 60%, then
+confirm the frame is unchanged. If `total` exceeds `capacity`, the surplus cells are
+dropped and their light zeroed: a visible darkening, never corruption.
+
+The readback is a synchronous stall, which is why it is off by default and fires only
+twice per instance.
 
 This is the cheapest large win found so far. It does not replace the sparse work if the
 goal is scaling the world volume, but it does remove the strongest argument for

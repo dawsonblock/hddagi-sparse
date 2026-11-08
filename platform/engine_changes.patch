@@ -1,9 +1,11 @@
---- godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp	2026-09-04 12:34:44
-+++ hddagi-build/godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp	2026-11-07 20:38:58
-@@ -352,6 +352,107 @@
- 	return texture;
- }
+--- a/servers/rendering/renderer_rd/environment/gi.cpp
++++ b/servers/rendering/renderer_rd/environment/gi.cpp
+@@ -350,6 +350,107 @@
+ 	RD::get_singleton()->texture_clear(texture, Color(0, 0, 0, 0), 0, p_format.mipmaps, 0, p_format.array_layers);
  
+ 	return texture;
++}
++
 +
 +#include "hddagi_sparse_plan.h"
 +
@@ -103,11 +105,9 @@
 +				plan.atlas_texels[0], plan.atlas_texels[1], plan.atlas_texels[2],
 +				double(plan.total_bytes) / (1024.0 * 1024.0)));
 +	}
-+}
-+
+ }
+ 
  void GI::HDDAGI::create(RID p_env, const Vector3 &p_world_anchor, const Vector3 &p_planar_world_forward, float p_cascade_forward_offset, uint32_t p_requested_history_size, GI *p_gi) {
- 	//RendererRD::TextureStorage *texture_storage = RendererRD::TextureStorage::get_singleton();
- 	//RendererRD::MaterialStorage *material_storage = RendererRD::MaterialStorage::get_singleton();
 @@ -394,8 +495,12 @@
  	version = gi->hddagi_current_version;
  	cascades.resize(num_cascades);
@@ -131,14 +131,15 @@
  }
  
  void GI::HDDAGI::render_region(Ref<RenderSceneBuffersRD> p_render_buffers, int p_region, const PagedArray<RenderGeometryInstance *> &p_instances, float p_exposure_normalization) {
-@@ -1179,6 +1286,22 @@
+@@ -1179,6 +1286,23 @@
  		idx++;
  	}
  
 +	// TEMPORARY MEASUREMENT: process-cell usage per cascade, read at the start of a
 +	// frame so the previous frame's light-store dispatch has actually completed.
 +	// This is the number that decides whether solid_cell_ratio can be lowered.
-+	if (update_frame == 2 || update_frame == 40) {
++	const bool debug_process_cells = bool(GLOBAL_GET("rendering/global_illumination/hddagi/debug_process_cells"));
++	if (debug_process_cells && (update_frame == 2 || update_frame == 40)) {
 +		for (int i = 0; i < int(cascades.size()); i++) {
 +			Vector<uint8_t> cells = RD::get_singleton()->buffer_get_data(cascades[i].light_process_dispatch_buffer);
 +			if (cells.size() >= 16) {
@@ -154,22 +155,23 @@
  	update_frame++;
  }
  
---- godot-dynamic_gi_2/servers/rendering/rendering_server.cpp	2026-09-04 12:34:44
-+++ hddagi-build/godot-dynamic_gi_2/servers/rendering/rendering_server.cpp	2026-11-07 20:38:58
-@@ -3825,6 +3825,12 @@
- 		project_settings->set_setting(light_update_setting, old_value);
+--- a/servers/rendering/rendering_server.cpp
++++ b/servers/rendering/rendering_server.cpp
+@@ -3826,6 +3826,13 @@
  	}
  #endif
-+
-+	// Fraction of the voxel count used to pre-size the per-cascade light-process
-+	// work lists. Measured usage in a simple scene is ~2.6% of voxels, so 0.5 is a
-+	// very conservative worst case; lowering it trades memory for cells dropped
-+	// when a scene is denser than the cap.
-+	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/global_illumination/hddagi/solid_cell_ratio", PROPERTY_HINT_RANGE, "0.01,1.0,0.01"), 0.5);
  
++	// Fraction of the voxel count used to pre-size the per-cascade light-process
++	// work lists. Measured demand was 6.7% of voxels in a dense forest and 2.6% in
++	// a small room, so 0.25 keeps 3.7x headroom while halving the buffers. Lower it
++	// per scene with debug_process_cells enabled to see the actual demand.
++	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/global_illumination/hddagi/solid_cell_ratio", PROPERTY_HINT_RANGE, "0.01,1.0,0.01"), 0.25);
++	GLOBAL_DEF("rendering/global_illumination/hddagi/debug_process_cells", false);
++
  	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_converge", PROPERTY_HINT_ENUM, "6 (Less Latency/Mem usage & Low Quality),12,18,24,32 (More Latency / Mem Usage & High Quality)"), 1);
  	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_update_lights", PROPERTY_HINT_ENUM, "1 (Faster),2,4,8,16 (Slower)"), 2);
---- a/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.h	2026-11-07 20:39:54
+ 	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_update_inactive_probes", PROPERTY_HINT_ENUM, "1 (Faster),2,4,8 (Slower)"), 3);
+--- /dev/null
 +++ b/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.h
 @@ -0,0 +1,181 @@
 +// M2.01 / M2.04 decision core, free of RenderingDevice dependencies.
@@ -353,7 +355,7 @@
 +		uint32_t max_workgroups_x = 65535);
 +
 +} // namespace hddagi_sparse
---- a/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.cpp	2026-11-07 20:39:54
+--- /dev/null
 +++ b/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.cpp
 @@ -0,0 +1,245 @@
 +#include "hddagi_sparse_plan.h"

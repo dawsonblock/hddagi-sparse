@@ -9,7 +9,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE="$(dirname "$HERE")"
-SRC="$WORKSPACE/godot-dynamic_gi_2"
+SRC="$(dirname "$WORKSPACE")/godot-dynamic_gi_2"
 BUILD_ROOT="$(dirname "$WORKSPACE")/hddagi-build"
 BUILD_TREE="$BUILD_ROOT/godot-dynamic_gi_2"
 SCONS="${SCONS:-$HOME/Library/Python/3.9/bin/scons}"
