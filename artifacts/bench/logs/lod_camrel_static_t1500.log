@@ -1,0 +1,19 @@
+Godot Engine v4.8.dev.custom_build - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M2 Pro (Apple8)
+WARNING: Property not found: 'rendering/textures/streaming/enabled'.
+     at: get_setting_with_override (core/config/project_settings.cpp:435)
+
+HDDAGI_HUD disabled by env (F3 toggles)
+HDDAGI_WIND disabled by env velocity=1.00,1.00 turbulence=0.50 gust_depth=0.30
+BENCH_TIMING t_ready_start_ms=1544
+BENCH_TIMING t_scene_built_ms=1778
+BENCH_READY scene=forest camera=static gi=true trees=1500 warmup=120 frames=300 tag=lod_camrel_static_t1500
+BENCH_VIEWPORT size=(1600.0, 900.0) window=(1600, 900)
+HDDAGI_PROCESS_BUDGET ratio=0.100 cells_per_cascade=104857 bytes_per_buffer=1.60 MiB total_buffers=11.20 MiB (7 buffers)
+HDDAGI_REBUILD_BUDGET full_cascades_per_frame=1 (0 = unlimited)
+HDDAGI_SPARSE_MODE dense (sparse disabled)
+BENCH_TIMING t_measure_start_ms=5770
+BENCH_TIMING t_measure_end_ms=14647
+BENCH_WROTE /Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/logs/lod_camrel_static_t1500.fresh.json
+BENCH_RESULT tag=lod_camrel_static_t1500 scene=forest camera=static gi=true trees=1500 frame_p50=29.428 frame_p95=30.542 cpu_render_p50=1.213 fps=33.8 gpu_timing=false viewport=(1600.0, 900.0) static_mb=83.4
+BENCH_CAPTURE_STATS {"height":900,"max":221,"mean":89.81,"min":18,"range":203,"width":1600}

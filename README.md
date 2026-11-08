@@ -24,6 +24,11 @@ artifacts/
   wind.md                 foliage sway: globals registered, calibrated, ~0.1 ms cost
   frame_budget.md         where the frame goes; grass shadows removed for 15.5%
   bench/                  per-run JSON from the Phase 2 harness; README.md indexes it
+  app_package.md          packaged app provenance: hashes, checks, limitations
+  app_build/              per-build manifest, report and logs (captures are local)
+  bench_hardening.md      why a failed bench run cannot look like a speedup
+  cold_start.md           packaged 1,500-tree cold vs warm, distributions and hitches
+  lod.md                  distance tree LOD + shadow LOD: -21.8%, 0.8% of pixels
 tests/renderer_hddagi_sparse/
   hddagi_brick_layout.h       grid, coordinate conversion, atlas addressing
   hddagi_brick_allocator.*    page table, states, generations, scroll replay
@@ -44,7 +49,9 @@ gpu/
   metal/                      Swift harnesses for probe, canary and allocator
 platform/
   RUN_ON_MAC.md               how to launch the app and see the self-test
-  make_mac_app.sh             builds the double-clickable HDDAGI.app
+  make_mac_app.sh             stage, validate and swap the double-clickable app
+  verify_app.py               bundle provenance + headless and rendered smoke checks
+  test_verify_app.py          capture-parser and image-check regressions
   engine_changes.patch        every engine change as a diff against the supplied tree
   build_and_run.sh            build in a copy, run the smoke project
   test_project/               HDDAGI smoke scene with frame capture, plus bench.gd
@@ -57,14 +64,18 @@ tools/
   check_shader_sites.py   M0.06 coverage enforcement
   memory_model.py         M0.08
   bench_run.sh            Phase 2 runner: one config -> artifacts/bench/<tag>.json
+  capture_check.py        blank/flat capture rejection, shared by app and bench checks
+  test_failure_modes.sh   failure-injection regressions for bench and packaging
+  profile_cold_warm.sh    {cold,warm} x {static,teleport,cut} on the packaged config
+  analyze_runs.py         distributions and spike counts from bench JSON
   check_engine_copies.sh  verifies platform/ copies and that the patch reproduces them
 ```
 
 ## Status
 
 **Engine builds and runs on macOS. M0 partially complete, M1 complete, M2 kernels
-execute on GPU but are not wired into the engine, and Phase 2 frame times are
-measured.**
+execute on GPU behind an opt-in gate but do not light anything yet, and Phase 2 frame
+times are measured.**
 
 - **The fork builds and runs on this Mac** (Metal 4, Forward+): 4,421 translation
   units, HDDAGI smoke scene renders, `DEBUG_DRAW_HDDAGI` shows the voxelised volume.
@@ -96,7 +107,11 @@ measured.**
   suite is proven to fail under deliberate mutation.
 - M2 kernels **execute on this machine's GPU** (Apple M2 Pro, Metal): translation
   parity 1,180/1,180, atlas canary 524,288/524,288 texels, allocator invariants hold.
-  The capability/dispatch decision core is tested (15 cases). The M2 gate still names
+  The capability/dispatch decision core is tested (15 cases). They are now behind
+  `rendering/global_illumination/hddagi/sparse_enabled` (default false), which runs the
+  probe/self-test only; there is no radiance store or atlas sampling, so the dense
+  renderer remains authoritative. `artifacts/sparse_status.md` records the gate, the
+  image-parity/RSS measurements and the exact missing pieces. The M2 gate still names
   Vulkan on the RTX 3080 Ti, so it is not met. See `artifacts/m2_scaffold.md`.
 
 Read `artifacts/decision.md` for the M0 gate and `artifacts/m1_report.md` for M1.
@@ -123,6 +138,18 @@ the globals registered, so the shaders take the same path and log the same warni
 with wind on while the foliage stays still; the benchmark runner sets that so timings
 stay comparable with the pre-wind baseline. Capture mode (`HDDAGI_CAPTURE=1`) turns wind
 off for the same reason it hides the HUD: captures are compared pixel for pixel.
+
+## Distance LOD
+
+The forest is split into three camera-relative distance rings: near (< 35 m) at lod0,
+mid (35-75 m) at lod1, far (> 75 m) at lod2, with the far ring not casting shadows. The
+rings are rebuilt when the camera moves 5 m. At 1,500 trees that is
+**37.41 -> 29.37 ms p50 (-21.5%)**, every measured frame under 33 ms in the repeat run,
+and 0.80% of pixels changing by more than 8/255; teleport hitch time drops 64%.
+`HDDAGI_LOD=0` puts every tree back at lod0, `HDDAGI_SHADOW_LOD=off` restores all
+shadows, and `HDDAGI_LOD_NEAR` / `HDDAGI_LOD_MID` move the boundaries. The benchmark
+harness defaults to off so the old baseline stays reproducible. Details and the quality
+table are in `artifacts/lod.md`.
 
 ## Settings menu (F1)
 

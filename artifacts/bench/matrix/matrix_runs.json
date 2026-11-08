@@ -1,0 +1,989 @@
+[
+  {
+    "tag": "pre_base",
+    "env": {
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "base",
+      "REP": "-1"
+    },
+    "elapsed_s": 6.4
+  },
+  {
+    "tag": "pre_noshadow",
+    "env": {
+      "BENCH_SHADOWS": "0",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "noshadow",
+      "REP": "-1"
+    },
+    "elapsed_s": 5.5
+  },
+  {
+    "tag": "pre_treelod",
+    "env": {
+      "BENCH_LOD": "rings",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "treelod",
+      "REP": "-1"
+    },
+    "elapsed_s": 6.2
+  },
+  {
+    "tag": "pre_shadowlod",
+    "env": {
+      "BENCH_SHADOW_LOD": "far",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "shadowlod",
+      "REP": "-1"
+    },
+    "elapsed_s": 6.0
+  },
+  {
+    "tag": "pre_shipped",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "shipped",
+      "REP": "-1"
+    },
+    "elapsed_s": 6.1
+  },
+  {
+    "tag": "pre_nogi",
+    "env": {
+      "GI": "off",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "nogi",
+      "REP": "-1"
+    },
+    "elapsed_s": 5.7
+  },
+  {
+    "tag": "pre_novolfog",
+    "env": {
+      "BENCH_VOLFOG": "0",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "novolfog",
+      "REP": "-1"
+    },
+    "elapsed_s": 6.3
+  },
+  {
+    "tag": "pre_nofog",
+    "env": {
+      "BENCH_VOLFOG": "0",
+      "BENCH_FOG": "0",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "nofog",
+      "REP": "-1"
+    },
+    "elapsed_s": 6.4
+  },
+  {
+    "tag": "pre_msaa0",
+    "env": {
+      "BENCH_MSAA": "0",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "msaa0",
+      "REP": "-1"
+    },
+    "elapsed_s": 6.2
+  },
+  {
+    "tag": "pre_msaa2x",
+    "env": {
+      "BENCH_MSAA": "1",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "msaa2x",
+      "REP": "-1"
+    },
+    "elapsed_s": 6.2
+  },
+  {
+    "tag": "pre_nossao",
+    "env": {
+      "BENCH_SSAO": "0",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "nossao",
+      "REP": "-1"
+    },
+    "elapsed_s": 6.5
+  },
+  {
+    "tag": "pre_noglow",
+    "env": {
+      "BENCH_GLOW": "0",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "noglow",
+      "REP": "-1"
+    },
+    "elapsed_s": 6.4
+  },
+  {
+    "tag": "pre_res720",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_WIDTH": "1280",
+      "BENCH_HEIGHT": "720",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "res720",
+      "REP": "-1"
+    },
+    "elapsed_s": 5.9
+  },
+  {
+    "tag": "m_base_r0",
+    "env": {
+      "MATRIX_CELL": "base",
+      "REP": "0"
+    },
+    "elapsed_s": 20.6
+  },
+  {
+    "tag": "m_noshadow_r0",
+    "env": {
+      "BENCH_SHADOWS": "0",
+      "MATRIX_CELL": "noshadow",
+      "REP": "0"
+    },
+    "elapsed_s": 15.8
+  },
+  {
+    "tag": "m_treelod_r0",
+    "env": {
+      "BENCH_LOD": "rings",
+      "MATRIX_CELL": "treelod",
+      "REP": "0"
+    },
+    "elapsed_s": 18.1
+  },
+  {
+    "tag": "m_shadowlod_r0",
+    "env": {
+      "BENCH_SHADOW_LOD": "far",
+      "MATRIX_CELL": "shadowlod",
+      "REP": "0"
+    },
+    "elapsed_s": 18.5
+  },
+  {
+    "tag": "m_shipped_r0",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "MATRIX_CELL": "shipped",
+      "REP": "0"
+    },
+    "elapsed_s": 17.0
+  },
+  {
+    "tag": "m_nogi_r0",
+    "env": {
+      "GI": "off",
+      "MATRIX_CELL": "nogi",
+      "REP": "0"
+    },
+    "elapsed_s": 17.8
+  },
+  {
+    "tag": "m_novolfog_r0",
+    "env": {
+      "BENCH_VOLFOG": "0",
+      "MATRIX_CELL": "novolfog",
+      "REP": "0"
+    },
+    "elapsed_s": 19.5
+  },
+  {
+    "tag": "m_nofog_r0",
+    "env": {
+      "BENCH_VOLFOG": "0",
+      "BENCH_FOG": "0",
+      "MATRIX_CELL": "nofog",
+      "REP": "0"
+    },
+    "elapsed_s": 19.4
+  },
+  {
+    "tag": "m_msaa0_r0",
+    "env": {
+      "BENCH_MSAA": "0",
+      "MATRIX_CELL": "msaa0",
+      "REP": "0"
+    },
+    "elapsed_s": 19.0
+  },
+  {
+    "tag": "m_msaa2x_r0",
+    "env": {
+      "BENCH_MSAA": "1",
+      "MATRIX_CELL": "msaa2x",
+      "REP": "0"
+    },
+    "elapsed_s": 20.1
+  },
+  {
+    "tag": "m_nossao_r0",
+    "env": {
+      "BENCH_SSAO": "0",
+      "MATRIX_CELL": "nossao",
+      "REP": "0"
+    },
+    "elapsed_s": 20.4
+  },
+  {
+    "tag": "m_noglow_r0",
+    "env": {
+      "BENCH_GLOW": "0",
+      "MATRIX_CELL": "noglow",
+      "REP": "0"
+    },
+    "elapsed_s": 20.1
+  },
+  {
+    "tag": "m_res720_r0",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_WIDTH": "1280",
+      "BENCH_HEIGHT": "720",
+      "MATRIX_CELL": "res720",
+      "REP": "0"
+    },
+    "elapsed_s": 15.6
+  },
+  {
+    "tag": "m_base_r1",
+    "env": {
+      "MATRIX_CELL": "base",
+      "REP": "1"
+    },
+    "elapsed_s": 20.2
+  },
+  {
+    "tag": "m_noshadow_r1",
+    "env": {
+      "BENCH_SHADOWS": "0",
+      "MATRIX_CELL": "noshadow",
+      "REP": "1"
+    },
+    "elapsed_s": 15.8
+  },
+  {
+    "tag": "m_treelod_r1",
+    "env": {
+      "BENCH_LOD": "rings",
+      "MATRIX_CELL": "treelod",
+      "REP": "1"
+    },
+    "elapsed_s": 17.4
+  },
+  {
+    "tag": "m_shadowlod_r1",
+    "env": {
+      "BENCH_SHADOW_LOD": "far",
+      "MATRIX_CELL": "shadowlod",
+      "REP": "1"
+    },
+    "elapsed_s": 18.3
+  },
+  {
+    "tag": "m_shipped_r1",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "MATRIX_CELL": "shipped",
+      "REP": "1"
+    },
+    "elapsed_s": 17.3
+  },
+  {
+    "tag": "m_nogi_r1",
+    "env": {
+      "GI": "off",
+      "MATRIX_CELL": "nogi",
+      "REP": "1"
+    },
+    "elapsed_s": 18.0
+  },
+  {
+    "tag": "m_novolfog_r1",
+    "env": {
+      "BENCH_VOLFOG": "0",
+      "MATRIX_CELL": "novolfog",
+      "REP": "1"
+    },
+    "elapsed_s": 19.1
+  },
+  {
+    "tag": "m_nofog_r1",
+    "env": {
+      "BENCH_VOLFOG": "0",
+      "BENCH_FOG": "0",
+      "MATRIX_CELL": "nofog",
+      "REP": "1"
+    },
+    "elapsed_s": 19.0
+  },
+  {
+    "tag": "m_msaa0_r1",
+    "env": {
+      "BENCH_MSAA": "0",
+      "MATRIX_CELL": "msaa0",
+      "REP": "1"
+    },
+    "elapsed_s": 19.8
+  },
+  {
+    "tag": "m_msaa2x_r1",
+    "env": {
+      "BENCH_MSAA": "1",
+      "MATRIX_CELL": "msaa2x",
+      "REP": "1"
+    },
+    "elapsed_s": 20.5
+  },
+  {
+    "tag": "m_nossao_r1",
+    "env": {
+      "BENCH_SSAO": "0",
+      "MATRIX_CELL": "nossao",
+      "REP": "1"
+    },
+    "elapsed_s": 20.1
+  },
+  {
+    "tag": "m_noglow_r1",
+    "env": {
+      "BENCH_GLOW": "0",
+      "MATRIX_CELL": "noglow",
+      "REP": "1"
+    },
+    "elapsed_s": 20.2
+  },
+  {
+    "tag": "m_res720_r1",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_WIDTH": "1280",
+      "BENCH_HEIGHT": "720",
+      "MATRIX_CELL": "res720",
+      "REP": "1"
+    },
+    "elapsed_s": 15.7
+  },
+  {
+    "tag": "m_base_r2",
+    "env": {
+      "MATRIX_CELL": "base",
+      "REP": "2"
+    },
+    "elapsed_s": 20.4
+  },
+  {
+    "tag": "m_noshadow_r2",
+    "env": {
+      "BENCH_SHADOWS": "0",
+      "MATRIX_CELL": "noshadow",
+      "REP": "2"
+    },
+    "elapsed_s": 15.3
+  },
+  {
+    "tag": "m_treelod_r2",
+    "env": {
+      "BENCH_LOD": "rings",
+      "MATRIX_CELL": "treelod",
+      "REP": "2"
+    },
+    "elapsed_s": 17.5
+  },
+  {
+    "tag": "m_shadowlod_r2",
+    "env": {
+      "BENCH_SHADOW_LOD": "far",
+      "MATRIX_CELL": "shadowlod",
+      "REP": "2"
+    },
+    "elapsed_s": 18.4
+  },
+  {
+    "tag": "m_shipped_r2",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "MATRIX_CELL": "shipped",
+      "REP": "2"
+    },
+    "elapsed_s": 17.2
+  },
+  {
+    "tag": "m_nogi_r2",
+    "env": {
+      "GI": "off",
+      "MATRIX_CELL": "nogi",
+      "REP": "2"
+    },
+    "elapsed_s": 17.9
+  },
+  {
+    "tag": "m_novolfog_r2",
+    "env": {
+      "BENCH_VOLFOG": "0",
+      "MATRIX_CELL": "novolfog",
+      "REP": "2"
+    },
+    "elapsed_s": 19.4
+  },
+  {
+    "tag": "m_nofog_r2",
+    "env": {
+      "BENCH_VOLFOG": "0",
+      "BENCH_FOG": "0",
+      "MATRIX_CELL": "nofog",
+      "REP": "2"
+    },
+    "elapsed_s": 19.4
+  },
+  {
+    "tag": "m_msaa0_r2",
+    "env": {
+      "BENCH_MSAA": "0",
+      "MATRIX_CELL": "msaa0",
+      "REP": "2"
+    },
+    "elapsed_s": 19.5
+  },
+  {
+    "tag": "m_msaa2x_r2",
+    "env": {
+      "BENCH_MSAA": "1",
+      "MATRIX_CELL": "msaa2x",
+      "REP": "2"
+    },
+    "elapsed_s": 19.8
+  },
+  {
+    "tag": "m_nossao_r2",
+    "env": {
+      "BENCH_SSAO": "0",
+      "MATRIX_CELL": "nossao",
+      "REP": "2"
+    },
+    "elapsed_s": 20.1
+  },
+  {
+    "tag": "m_noglow_r2",
+    "env": {
+      "BENCH_GLOW": "0",
+      "MATRIX_CELL": "noglow",
+      "REP": "2"
+    },
+    "elapsed_s": 20.2
+  },
+  {
+    "tag": "m_res720_r2",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_WIDTH": "1280",
+      "BENCH_HEIGHT": "720",
+      "MATRIX_CELL": "res720",
+      "REP": "2"
+    },
+    "elapsed_s": 15.8
+  },
+  {
+    "tag": "pre_tele_base",
+    "env": {
+      "CAMERA": "teleport",
+      "WARMUP": "60",
+      "FRAMES": "60",
+      "MATRIX_CELL": "tele_base",
+      "REP": "-1"
+    },
+    "elapsed_s": 9.4
+  },
+  {
+    "tag": "pre_tele_shipped",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "CAMERA": "teleport",
+      "WARMUP": "60",
+      "FRAMES": "60",
+      "MATRIX_CELL": "tele_shipped",
+      "REP": "-1"
+    },
+    "elapsed_s": 8.6
+  },
+  {
+    "tag": "m_tele_base_r0",
+    "env": {
+      "CAMERA": "teleport",
+      "MATRIX_CELL": "tele_base",
+      "REP": "0"
+    },
+    "elapsed_s": 22.1
+  },
+  {
+    "tag": "m_tele_shipped_r0",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "CAMERA": "teleport",
+      "MATRIX_CELL": "tele_shipped",
+      "REP": "0"
+    },
+    "elapsed_s": 18.8
+  },
+  {
+    "tag": "m_tele_base_r1",
+    "env": {
+      "CAMERA": "teleport",
+      "MATRIX_CELL": "tele_base",
+      "REP": "1"
+    },
+    "elapsed_s": 22.0
+  },
+  {
+    "tag": "m_tele_shipped_r1",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "CAMERA": "teleport",
+      "MATRIX_CELL": "tele_shipped",
+      "REP": "1"
+    },
+    "elapsed_s": 18.4
+  },
+  {
+    "tag": "m_tele_base_r2",
+    "env": {
+      "CAMERA": "teleport",
+      "MATRIX_CELL": "tele_base",
+      "REP": "2"
+    },
+    "elapsed_s": 22.4
+  },
+  {
+    "tag": "m_tele_shipped_r2",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "CAMERA": "teleport",
+      "MATRIX_CELL": "tele_shipped",
+      "REP": "2"
+    },
+    "elapsed_s": 18.5
+  },
+  {
+    "tag": "m_cold_base",
+    "env": {
+      "COLD": "1",
+      "MATRIX_CELL": "cold_base",
+      "REP": "0",
+      "CACHE_STATE": "cold"
+    },
+    "elapsed_s": 28.3
+  },
+  {
+    "tag": "m_cold_shipped",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "COLD": "1",
+      "MATRIX_CELL": "cold_shipped",
+      "REP": "0",
+      "CACHE_STATE": "cold"
+    },
+    "elapsed_s": 24.4
+  },
+  {
+    "tag": "pre_bal_looks",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_MSAA": "1",
+      "BENCH_SSAO": "0",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "bal_looks",
+      "REP": "-1"
+    },
+    "elapsed_s": 7.0
+  },
+  {
+    "tag": "pre_bal_perf",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_MSAA": "1",
+      "BENCH_SSAO": "0",
+      "BENCH_WIDTH": "1280",
+      "BENCH_HEIGHT": "720",
+      "WARMUP": "30",
+      "FRAMES": "30",
+      "MATRIX_CELL": "bal_perf",
+      "REP": "-1"
+    },
+    "elapsed_s": 5.6
+  },
+  {
+    "tag": "m_bal_looks_r0",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_MSAA": "1",
+      "BENCH_SSAO": "0",
+      "MATRIX_CELL": "bal_looks",
+      "REP": "0"
+    },
+    "elapsed_s": 16.2
+  },
+  {
+    "tag": "m_bal_perf_r0",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_MSAA": "1",
+      "BENCH_SSAO": "0",
+      "BENCH_WIDTH": "1280",
+      "BENCH_HEIGHT": "720",
+      "MATRIX_CELL": "bal_perf",
+      "REP": "0"
+    },
+    "elapsed_s": 15.2
+  },
+  {
+    "tag": "m_bal_looks_r1",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_MSAA": "1",
+      "BENCH_SSAO": "0",
+      "MATRIX_CELL": "bal_looks",
+      "REP": "1"
+    },
+    "elapsed_s": 16.4
+  },
+  {
+    "tag": "m_bal_perf_r1",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_MSAA": "1",
+      "BENCH_SSAO": "0",
+      "BENCH_WIDTH": "1280",
+      "BENCH_HEIGHT": "720",
+      "MATRIX_CELL": "bal_perf",
+      "REP": "1"
+    },
+    "elapsed_s": 15.4
+  },
+  {
+    "tag": "m_bal_looks_r2",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_MSAA": "1",
+      "BENCH_SSAO": "0",
+      "MATRIX_CELL": "bal_looks",
+      "REP": "2"
+    },
+    "elapsed_s": 16.3
+  },
+  {
+    "tag": "m_bal_perf_r2",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_MSAA": "1",
+      "BENCH_SSAO": "0",
+      "BENCH_WIDTH": "1280",
+      "BENCH_HEIGHT": "720",
+      "MATRIX_CELL": "bal_perf",
+      "REP": "2"
+    },
+    "elapsed_s": 15.2
+  },
+  {
+    "tag": "q_base",
+    "env": {
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "base",
+      "REP": "0"
+    },
+    "elapsed_s": 11.7
+  },
+  {
+    "tag": "q_treelod",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "treelod",
+      "REP": "0"
+    },
+    "elapsed_s": 10.6
+  },
+  {
+    "tag": "q_shadowlod",
+    "env": {
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "shadowlod",
+      "REP": "0"
+    },
+    "elapsed_s": 10.9
+  },
+  {
+    "tag": "q_shipped",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "shipped",
+      "REP": "0"
+    },
+    "elapsed_s": 10.1
+  },
+  {
+    "tag": "q_noshadow",
+    "env": {
+      "BENCH_SHADOWS": "0",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "noshadow",
+      "REP": "0"
+    },
+    "elapsed_s": 9.5
+  },
+  {
+    "tag": "q_nogi",
+    "env": {
+      "GI": "off",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "nogi",
+      "REP": "0"
+    },
+    "elapsed_s": 10.4
+  },
+  {
+    "tag": "q_novolfog",
+    "env": {
+      "BENCH_VOLFOG": "0",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "novolfog",
+      "REP": "0"
+    },
+    "elapsed_s": 11.0
+  },
+  {
+    "tag": "q_nossao",
+    "env": {
+      "BENCH_SSAO": "0",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "nossao",
+      "REP": "0"
+    },
+    "elapsed_s": 11.8
+  },
+  {
+    "tag": "q_msaa0",
+    "env": {
+      "BENCH_MSAA": "0",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "msaa0",
+      "REP": "0"
+    },
+    "elapsed_s": 11.6
+  },
+  {
+    "tag": "q_msaa2x",
+    "env": {
+      "BENCH_MSAA": "1",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "msaa2x",
+      "REP": "0"
+    },
+    "elapsed_s": 11.3
+  },
+  {
+    "tag": "q_noglow",
+    "env": {
+      "BENCH_GLOW": "0",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "noglow",
+      "REP": "0"
+    },
+    "elapsed_s": 11.5
+  },
+  {
+    "tag": "q_res720",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_WIDTH": "1280",
+      "BENCH_HEIGHT": "720",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "res720",
+      "REP": "0"
+    },
+    "elapsed_s": 9.5
+  },
+  {
+    "tag": "q_nofog",
+    "env": {
+      "BENCH_VOLFOG": "0",
+      "BENCH_FOG": "0",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "nofog",
+      "REP": "0"
+    },
+    "elapsed_s": 11.1
+  },
+  {
+    "tag": "q_bal_looks",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_MSAA": "1",
+      "BENCH_SSAO": "0",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "bal_looks",
+      "REP": "0"
+    },
+    "elapsed_s": 9.9
+  },
+  {
+    "tag": "q_bal_perf",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "BENCH_MSAA": "1",
+      "BENCH_SSAO": "0",
+      "BENCH_WIDTH": "1280",
+      "BENCH_HEIGHT": "720",
+      "BENCH_SNAP": "100",
+      "FRAMES": "120",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "bal_perf",
+      "REP": "0"
+    },
+    "elapsed_s": 9.6
+  },
+  {
+    "tag": "q_base_cut",
+    "env": {
+      "CAMERA": "cut",
+      "BENCH_SNAP": "30",
+      "FRAMES": "40",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "base_cut",
+      "REP": "0"
+    },
+    "elapsed_s": 8.9
+  },
+  {
+    "tag": "q_treelod_cut",
+    "env": {
+      "BENCH_LOD": "rings",
+      "CAMERA": "cut",
+      "BENCH_SNAP": "30",
+      "FRAMES": "40",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "treelod_cut",
+      "REP": "0"
+    },
+    "elapsed_s": 8.4
+  },
+  {
+    "tag": "q_shadowlod_cut",
+    "env": {
+      "BENCH_SHADOW_LOD": "far",
+      "CAMERA": "cut",
+      "BENCH_SNAP": "30",
+      "FRAMES": "40",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "shadowlod_cut",
+      "REP": "0"
+    },
+    "elapsed_s": 8.6
+  },
+  {
+    "tag": "q_shipped_cut",
+    "env": {
+      "BENCH_LOD": "rings",
+      "BENCH_SHADOW_LOD": "far",
+      "CAMERA": "cut",
+      "BENCH_SNAP": "30",
+      "FRAMES": "40",
+      "WARMUP": "60",
+      "BENCH_SNAP_DIR": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps",
+      "MATRIX_CELL": "shipped_cut",
+      "REP": "0"
+    },
+    "elapsed_s": 8.0
+  }
+]

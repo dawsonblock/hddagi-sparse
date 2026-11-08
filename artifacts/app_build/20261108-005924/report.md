@@ -1,0 +1,23 @@
+# HDDAGI.app verification
+
+Verified `2026-11-08T07:01:20+00:00` from commit `f73568d20e3741ea8a274062f435b512ad2cc1c0` (dirty tree).
+
+| check | result |
+|---|---|
+| engine binary sha256 | `29fa35ed5bc45167ed2e23368a82ecef49f029dd83fb9c31946bbf714eb77a9e` |
+| bundle binary matches build | yes |
+| source files in bundle | 105/105 |
+| files differing | 0 |
+| unexpected extra files | 0 |
+| .import dest files present | 21/21 |
+| headless startup | exit 0, 0 error lines |
+| rendered smoke | ran, 1500 trees, exit 0 |
+
+**Result: FAIL**
+
+Failures:
+
+- normal capture reported stats
+- debug capture reported stats
+
+Logs: `headless.log`, `rendered.log` and `captures/` sit next to this report.

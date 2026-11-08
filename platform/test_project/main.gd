@@ -13,13 +13,29 @@ const TERRAIN_AMPLITUDE := 1.8
 const OUT_NORMAL := "/tmp/hddagi_normal.png"
 const OUT_DEBUG := "/tmp/hddagi_debug.png"
 
+# preload rather than class_name: the harness must work on a project whose
+# global script class cache has not been regenerated yet.
+const CaptureStatsScript = preload("res://capture_stats.gd")
+
 const TREE_MESHES := [
 	"res://demo/foliage/models/oak_lod0.res",
 	"res://demo/foliage/models/elm_lod0.res",
 	"res://demo/foliage/models/pine_lod0.res",
 ]
 
+const TREE_SPECIES := ["oak", "elm", "pine"]
+
+# Distance rings for tree and shadow LOD, in metres from the scene origin. The
+# camera stands in the clearing, so this is distance from the viewer. Measured in
+# artifacts/lod.md: -21.8% frame time for 0.8% of pixels changing by more than 8.
+const LOD_NEAR := 35.0
+const LOD_MID := 75.0
+
 var _noise := FastNoiseLite.new()
+var _lod_enabled := true
+var _shadow_lod := "far"
+var _lod_near := LOD_NEAR
+var _lod_mid := LOD_MID
 
 func _ready() -> void:
 	var trees := int(OS.get_environment("HDDAGI_TREES")) if OS.get_environment("HDDAGI_TREES") != "" else 600
@@ -35,6 +51,19 @@ func _ready() -> void:
 		var wind := get_node_or_null("/root/Wind")
 		if wind:
 			wind.set_wind_enabled(false)
+		# A capture that is 1622 px wide one run and 1623 the next changes the
+		# projection aspect and makes every edge differ. Pin the size so image
+		# comparisons are meaningful.
+		DisplayServer.window_set_size(Vector2i(1600, 900))
+		DisplayServer.window_set_position(Vector2i(40, 40))
+
+	# Distance LOD is on by default; HDDAGI_LOD=0 restores every tree at LOD0.
+	_lod_enabled = OS.get_environment("HDDAGI_LOD") != "0"
+	_shadow_lod = _env_path("HDDAGI_SHADOW_LOD", "far")
+	_lod_near = float(_env_path("HDDAGI_LOD_NEAR", str(LOD_NEAR)))
+	_lod_mid = float(_env_path("HDDAGI_LOD_MID", str(LOD_MID)))
+	print("HDDAGI_LOD %s shadow_lod=%s near=%.0f mid=%.0f" % [
+		"rings" if _lod_enabled else "off", _shadow_lod, _lod_near, _lod_mid])
 
 	_noise.seed = 4242
 	_noise.frequency = 0.012
@@ -125,8 +154,9 @@ func _ready() -> void:
 		return
 
 	await RenderingServer.frame_post_draw
-	_capture(OUT_NORMAL)
-	print("CAPTURED_NORMAL ", OUT_NORMAL)
+	var out_normal := _env_path("HDDAGI_CAPTURE_NORMAL", OUT_NORMAL)
+	_capture(out_normal)
+	print("CAPTURED_NORMAL ", out_normal)
 
 	var vp := get_viewport()
 	if vp != null:
@@ -134,10 +164,15 @@ func _ready() -> void:
 		for i in range(10):
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
-		_capture(OUT_DEBUG)
-		print("CAPTURED_DEBUG ", OUT_DEBUG)
+		var out_debug := _env_path("HDDAGI_CAPTURE_DEBUG", OUT_DEBUG)
+		_capture(out_debug)
+		print("CAPTURED_DEBUG ", out_debug)
 
 	get_tree().quit()
+
+func _env_path(key: String, fallback: String) -> String:
+	var v := OS.get_environment(key)
+	return v if v != "" else fallback
 
 func _height(x: float, z: float) -> float:
 	# Flatten toward the origin so the clearing stays walkable and trees do not
@@ -228,13 +263,15 @@ func _add_forest(count: int, radius: float) -> void:
 		push_error("no tree meshes loaded")
 		return
 
+	var lod_meshes: Array = []
+	if _lod_enabled:
+		lod_meshes = _load_lod_meshes()
+
 	var per_species := int(ceil(float(count) / float(meshes.size())))
 	for species in range(meshes.size()):
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.instance_count = per_species
-		mm.mesh = meshes[species]
-
+		# Generate every transform before splitting so the RNG stream does not
+		# depend on the LOD configuration.
+		var xforms: Array[Transform3D] = []
 		for i in range(per_species):
 			var angle := rng.randf() * TAU
 			var dist := CLEARING + sqrt(rng.randf()) * (radius - CLEARING)
@@ -243,11 +280,25 @@ func _add_forest(count: int, radius: float) -> void:
 			var pos := Vector3(px, _height(px, pz) - 0.15, pz)
 			var s := 0.70 + rng.randf() * 0.45
 			var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s))
-			mm.set_instance_transform(i, Transform3D(basis, pos))
+			xforms.append(Transform3D(basis, pos))
 
-		var node := MultiMeshInstance3D.new()
-		node.multimesh = mm
-		add_child(node)
+		if not _lod_enabled and _shadow_lod == "off":
+			_add_multimesh(meshes[species], xforms, true)
+			continue
+
+		var bands := _split_bands(xforms)
+		for band in range(bands.size()):
+			var mesh: Mesh = meshes[species]
+			if _lod_enabled:
+				var species_lods: Array = lod_meshes[species]
+				if not species_lods.is_empty():
+					mesh = species_lods[mini(band, species_lods.size() - 1)]
+			var shadows := true
+			if _shadow_lod == "far" and band == 2:
+				shadows = false
+			elif _shadow_lod == "near" and band > 0:
+				shadows = false
+			_add_multimesh(mesh, bands[band], shadows)
 
 	var grass := load("res://demo/foliage/models/grass_lod0.res")
 	if grass is Mesh:
@@ -270,6 +321,47 @@ func _add_forest(count: int, radius: float) -> void:
 		gn.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(gn)
 
+func _split_bands(xforms: Array) -> Array:
+	var bands: Array = [[], [], []]
+	for t in xforms:
+		var d := Vector2(t.origin.x, t.origin.z).length()
+		var band := 0
+		if d >= _lod_mid:
+			band = 2
+		elif d >= _lod_near:
+			band = 1
+		bands[band].append(t)
+	return bands
+
+func _add_multimesh(mesh: Mesh, xforms: Array, shadows: bool) -> void:
+	if xforms.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.instance_count = xforms.size()
+	mm.mesh = mesh
+	for i in range(xforms.size()):
+		mm.set_instance_transform(i, xforms[i])
+	var node := MultiMeshInstance3D.new()
+	node.multimesh = mm
+	if not shadows:
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(node)
+
+func _load_lod_meshes() -> Array:
+	var out: Array = []
+	for species in TREE_SPECIES:
+		var lods: Array[Mesh] = []
+		for lod in range(3):
+			var path := "res://demo/foliage/models/%s_lod%d.res" % [species, lod]
+			var m := load(path)
+			if m is Mesh:
+				lods.append(m)
+			else:
+				push_warning("could not load LOD mesh: " + path)
+		out.append(lods)
+	return out
+
 func _capture(path: String) -> void:
 	var vp := get_viewport()
 	if vp == null:
@@ -282,3 +374,10 @@ func _capture(path: String) -> void:
 	var err := img.save_png(path)
 	if err != OK:
 		print("CAPTURE_FAILED save err ", err)
+		return
+	# Machine-checkable proof that the frame contains rendered content: a failed
+	# import, a broken shader or a dead GPU path all produce a flat image, and a
+	# capture that merely exists on disk would not catch that.
+	var stats := CaptureStatsScript.of(img)
+	stats["path"] = path
+	print("CAPTURE_STATS %s" % JSON.stringify(stats))

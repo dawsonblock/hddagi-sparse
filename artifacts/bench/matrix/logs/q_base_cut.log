@@ -1,0 +1,20 @@
+Godot Engine v4.8.dev.custom_build - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M2 Pro (Apple8)
+WARNING: Property not found: 'rendering/textures/streaming/enabled'.
+     at: get_setting_with_override (core/config/project_settings.cpp:435)
+
+HDDAGI_HUD disabled by env (F3 toggles)
+HDDAGI_WIND disabled by env velocity=1.00,1.00 turbulence=0.50 gust_depth=0.30
+BENCH_TIMING t_ready_start_ms=1227
+BENCH_TIMING t_scene_built_ms=1454
+BENCH_READY scene=forest camera=cut gi=true trees=1500 warmup=60 frames=40 tag=q_base_cut
+BENCH_VIEWPORT size=(1600.0, 900.0) window=(1600, 900)
+HDDAGI_PROCESS_BUDGET ratio=0.100 cells_per_cascade=104857 bytes_per_buffer=1.60 MiB total_buffers=11.20 MiB (7 buffers)
+HDDAGI_REBUILD_BUDGET full_cascades_per_frame=1 (0 = unlimited)
+HDDAGI_SPARSE_MODE dense (sparse disabled)
+BENCH_TIMING t_measure_start_ms=4163
+SNAP /Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/snaps/q_base_cut_f030.png err=0
+BENCH_TIMING t_measure_end_ms=6807
+BENCH_WROTE /Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/matrix/logs/q_base_cut.fresh.json
+BENCH_RESULT tag=q_base_cut scene=forest camera=cut gi=true trees=1500 frame_p50=38.842 frame_p95=86.522 cpu_render_p50=0.771 fps=15.1 gpu_timing=false viewport=(1600.0, 900.0) static_mb=83.3
+BENCH_CAPTURE_STATS {"height":900,"max":255,"mean":74.74,"min":10,"range":245,"width":1600}

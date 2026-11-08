@@ -7,3 +7,4 @@ gpu/build/
 engine/build/
 platform/test_project/.godot/
 platform/test_project/override.cfg
+artifacts/app_build/*/captures/

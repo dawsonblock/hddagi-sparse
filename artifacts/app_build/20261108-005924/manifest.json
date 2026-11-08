@@ -1,0 +1,66 @@
+{
+  "verified_at": "2026-11-08T07:01:20+00:00",
+  "app": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-run/HDDAGI.app",
+  "app_size_bytes": 328459487,
+  "source": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/platform/test_project",
+  "source_commit": "f73568d20e3741ea8a274062f435b512ad2cc1c0",
+  "source_dirty": true,
+  "engine_binary": {
+    "path": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-build/godot-dynamic_gi_2/bin/godot.macos.editor.dev.arm64",
+    "sha256": "29fa35ed5bc45167ed2e23368a82ecef49f029dd83fb9c31946bbf714eb77a9e",
+    "size_bytes": 269784432,
+    "mtime": "2026-11-08T04:55:58+00:00"
+  },
+  "app_binary": {
+    "path": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-run/HDDAGI.app.staging.81338/Contents/MacOS/godot",
+    "sha256": "29fa35ed5bc45167ed2e23368a82ecef49f029dd83fb9c31946bbf714eb77a9e",
+    "size_bytes": 269784432
+  },
+  "project": {
+    "source_files": 105,
+    "bundle_files": 105,
+    "source_manifest_sha256": "91e748606206b1c67ab692c18ecb2dc600366a7646ee14532b42dd04b8dc4f46",
+    "bundle_manifest_sha256": "91e748606206b1c67ab692c18ecb2dc600366a7646ee14532b42dd04b8dc4f46",
+    "missing": [],
+    "differing": [],
+    "unexpected_extras": [],
+    "generated_uid_extras": []
+  },
+  "imports": {
+    "import_files": 21,
+    "dest_files_checked": 21,
+    "dest_missing": [],
+    "source_missing": []
+  },
+  "headless": {
+    "command": [
+      "/Users/dawsonblock/Downloads/godot upgraded /hddagi-run/HDDAGI.app.staging.81338/Contents/MacOS/godot",
+      "--headless",
+      "--path",
+      "/Users/dawsonblock/Downloads/godot upgraded /hddagi-run/HDDAGI.app.staging.81338/Contents/Resources/project",
+      "--quit-after",
+      "3"
+    ],
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_s": 0.728,
+    "log": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/app_build/20261108-005924/headless.log",
+    "error_lines": []
+  },
+  "rendered": {
+    "ran": true,
+    "trees": 1500,
+    "exit_code": 0,
+    "elapsed_s": 103.257,
+    "normal": null,
+    "debug": null,
+    "log": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/app_build/20261108-005924/rendered.log"
+  },
+  "failures": [
+    "normal capture reported stats",
+    "debug capture reported stats"
+  ],
+  "notes": [],
+  "limitations": [],
+  "ok": false
+}

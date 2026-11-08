@@ -1,5 +1,5 @@
---- godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp	2026-09-04 12:34:44
-+++ hddagi-build/godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp	2026-11-07 22:55:25
+--- godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp
++++ hddagi-build/godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp
 @@ -350,6 +350,128 @@
  	RD::get_singleton()->texture_clear(texture, Color(0, 0, 0, 0), 0, p_format.mipmaps, 0, p_format.array_layers);
  
@@ -145,21 +145,30 @@
  
  	float base_cell_size = min_cell_size;
  
-@@ -646,6 +774,8 @@
+@@ -646,6 +774,16 @@
  	probe_bias = RendererSceneRenderRD::get_singleton()->environment_get_hddagi_probe_bias(p_env);
  	occlusion_bias = RendererSceneRenderRD::get_singleton()->environment_get_hddagi_occlusion_bias(p_env);
  	reads_sky = RendererSceneRenderRD::get_singleton()->environment_get_hddagi_read_sky_light(p_env);
 +
-+	_hddagi_probe_sparse_support(num_cascades, cascade_size);
++	// Sparse bricks are an explicit opt-in. Until the sparse atlas is sampled by the
++	// lighting pass, enabling this runs only the capability probe and the optional
++	// self-test; the dense path remains the renderer, and no memory is saved.
++	if (bool(GLOBAL_GET("rendering/global_illumination/hddagi/sparse_enabled"))) {
++		_hddagi_probe_sparse_support(num_cascades, cascade_size);
++		print_line("HDDAGI_SPARSE_MODE probe (lighting remains dense; no sparse savings claimed)");
++	} else {
++		print_line("HDDAGI_SPARSE_MODE dense (sparse disabled)");
++	}
  }
  
  void GI::HDDAGI::render_region(Ref<RenderSceneBuffersRD> p_render_buffers, int p_region, const PagedArray<RenderGeometryInstance *> &p_instances, float p_exposure_normalization) {
-@@ -1109,9 +1239,13 @@
+@@ -1108,10 +1246,14 @@
+ 	occlusion_bias = RendererSceneRenderRD::get_singleton()->environment_get_hddagi_occlusion_bias(p_env);
  
  	int32_t drag_margin = REGION_CELLS / 2;
- 
-+	uint32_t full_rebuilds_issued = 0;
 +
++	uint32_t full_rebuilds_issued = 0;
+ 
  	int idx = 0;
  	for (HDDAGI::Cascade &cascade : cascades) {
  		cascade.dirty_regions = Vector3i();
@@ -168,13 +177,10 @@
  
  		Vector3 probe_half_size = Vector3(1, 1, 1) * cascade.cell_size * float(REGION_CELLS) * 0.5;
  		probe_half_size = Vector3(0, 0, 0);
-@@ -1158,7 +1292,26 @@
- 			if (dirty_volume > (safe_volume / 2)) {
- 				//more than half the volume is dirty, make all dirty so its only rendered once
- 				cascade.dirty_regions = HDDAGI::Cascade::DIRTY_ALL;
-+			}
-+		}
-+
+@@ -1161,6 +1303,25 @@
+ 			}
+ 		}
+ 
 +		if (cascade.dirty_regions == HDDAGI::Cascade::DIRTY_ALL && full_rebuild_budget > 0) {
 +			if (full_rebuilds_issued >= full_rebuild_budget) {
 +				// A teleport invalidates every cascade at once, and rebuilding them all in
@@ -190,17 +196,17 @@
 +				cascade.dirty_regions = Vector3i();
 +				idx++;
 +				continue;
- 			}
++			}
 +			full_rebuilds_issued++;
- 		}
- 
- 		if (cascade.dirty_regions != Vector3i()) {
-@@ -1177,6 +1330,23 @@
- 		}
- 
- 		idx++;
-+	}
++		}
 +
+ 		if (cascade.dirty_regions != Vector3i()) {
+ 			uint32_t dirty_mask = 0;
+ 			for (int j = 0; j < 3; j++) {
+@@ -1179,6 +1340,23 @@
+ 		idx++;
+ 	}
+ 
 +	// TEMPORARY MEASUREMENT: process-cell usage per cascade, read at the start of a
 +	// frame so the previous frame's light-store dispatch has actually completed.
 +	// This is the number that decides whether solid_cell_ratio can be lowered.
@@ -216,11 +222,13 @@
 +						double(v[3]) * 100.0 / double(solid_cell_count)));
 +			}
 +		}
- 	}
- 
++	}
++
  	update_frame++;
---- godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.h	2026-09-04 12:34:44
-+++ hddagi-build/godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.h	2026-11-07 22:55:21
+ }
+ 
+--- godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.h
++++ hddagi-build/godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.h
 @@ -847,6 +847,12 @@
  
  		uint32_t update_frame = 0;
@@ -234,12 +242,18 @@
  
  		bool using_probe_filter = true;
  		bool using_reflection_filter = true;
---- godot-dynamic_gi_2/servers/rendering/rendering_server.cpp	2026-09-04 12:34:44
-+++ hddagi-build/godot-dynamic_gi_2/servers/rendering/rendering_server.cpp	2026-11-07 22:55:28
-@@ -3826,6 +3826,25 @@
+--- godot-dynamic_gi_2/servers/rendering/rendering_server.cpp
++++ hddagi-build/godot-dynamic_gi_2/servers/rendering/rendering_server.cpp
+@@ -3825,7 +3825,31 @@
+ 		project_settings->set_setting(light_update_setting, old_value);
  	}
  #endif
- 
++
++	// Explicit opt-in for the sparse-brick path. It currently gates the capability
++	// probe and self-test only: the sparse atlas is not yet sampled by the lighting
++	// pass, so the dense renderer remains the fallback and no memory is saved.
++	GLOBAL_DEF("rendering/global_illumination/hddagi/sparse_enabled", false);
++
 +	// Runs the sparse-brick GPU self-test once at HDDAGI creation: creates the atlas
 +	// and page table, dispatches the four kernels against CPU-generated fixtures, and
 +	// logs pass/fail. Dev-only; it is a bring-up tool, not a shipping path.
@@ -252,7 +266,7 @@
 +	// per scene with debug_process_cells enabled to see the actual demand.
 +	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/global_illumination/hddagi/solid_cell_ratio", PROPERTY_HINT_RANGE, "0.01,1.0,0.01"), 0.25);
 +	GLOBAL_DEF("rendering/global_illumination/hddagi/debug_process_cells", false);
-+
+ 
 +	// How many cascades may enter a full rebuild in one frame. A camera teleport
 +	// invalidates all of them at once; measured cost is ~13-15 ms per cascade, so
 +	// rebuilding six in one frame produced a ~100 ms hitch. 0 restores the old
@@ -262,8 +276,8 @@
  	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_converge", PROPERTY_HINT_ENUM, "6 (Less Latency/Mem usage & Low Quality),12,18,24,32 (More Latency / Mem Usage & High Quality)"), 1);
  	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_update_lights", PROPERTY_HINT_ENUM, "1 (Faster),2,4,8,16 (Slower)"), 2);
  	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_update_inactive_probes", PROPERTY_HINT_ENUM, "1 (Faster),2,4,8 (Slower)"), 3);
---- /dev/null	2026-11-07 23:00:01
-+++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.h	2026-11-07 20:24:57
+--- /dev/null
++++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.h
 @@ -0,0 +1,181 @@
 +// M2.01 / M2.04 decision core, free of RenderingDevice dependencies.
 +//
@@ -446,8 +460,8 @@
 +		uint32_t max_workgroups_x = 65535);
 +
 +} // namespace hddagi_sparse
---- /dev/null	2026-11-07 23:00:01
-+++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.cpp	2026-11-07 20:24:57
+--- /dev/null
++++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.cpp
 @@ -0,0 +1,245 @@
 +#include "hddagi_sparse_plan.h"
 +
@@ -694,8 +708,8 @@
 +}
 +
 +} // namespace hddagi_sparse
---- /dev/null	2026-11-07 23:00:01
-+++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_selftest.h	2026-11-07 21:04:21
+--- /dev/null
++++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_selftest.h
 @@ -0,0 +1,44 @@
 +// In-engine self-test for the sparse-brick GPU path (M2.02 - M2.05).
 +//
@@ -741,8 +755,8 @@
 +		int p_cascades, const Vector3i &p_grid);
 +
 +} // namespace hddagi_sparse
---- /dev/null	2026-11-07 23:00:01
-+++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_selftest.cpp	2026-11-07 21:07:16
+--- /dev/null
++++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_selftest.cpp
 @@ -0,0 +1,377 @@
 +#include "hddagi_sparse_selftest.h"
 +
@@ -1121,8 +1135,8 @@
 +}
 +
 +} // namespace hddagi_sparse
---- /dev/null	2026-11-07 23:00:01
-+++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_shaders.inc	2026-11-07 21:05:15
+--- /dev/null
++++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_shaders.inc
 @@ -0,0 +1,431 @@
 +// Generated by platform/gen_shader_inc.py. Do not edit by hand.
 +// The #version line is stripped; the self-test prepends it so it stays first.

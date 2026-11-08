@@ -1,0 +1,19 @@
+Godot Engine v4.8.dev.custom_build - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M2 Pro (Apple8)
+WARNING: Property not found: 'rendering/textures/streaming/enabled'.
+     at: get_setting_with_override (core/config/project_settings.cpp:435)
+
+HDDAGI_HUD enabled (F3 toggles)
+HDDAGI_WIND enabled velocity=1.00,1.00 turbulence=0.50 gust_depth=0.30
+HDDAGI_MENU enabled (F1 opens)
+HDDAGI_LOD rings shadow_lod=far near=35 mid=75
+HDDAGI_SMOKE_READY trees=1500 radius=111.418515342684
+dynamic_gi_enabled = true
+renderer = forward_plus
+HDDAGI_PROCESS_BUDGET ratio=0.100 cells_per_cascade=104857 bytes_per_buffer=1.60 MiB total_buffers=11.20 MiB (7 buffers)
+HDDAGI_REBUILD_BUDGET full_cascades_per_frame=1 (0 = unlimited)
+HDDAGI_SPARSE_MODE dense (sparse disabled)
+CAPTURE_STATS {"height":900,"max":221,"mean":89.77,"min":18,"path":"/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/app_build/20261108-024210/installed/captures/normal.png","range":203,"width":1600}
+CAPTURED_NORMAL /Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/app_build/20261108-024210/installed/captures/normal.png
+CAPTURE_STATS {"height":900,"max":123,"mean":5.28,"min":0,"path":"/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/app_build/20261108-024210/installed/captures/debug.png","range":123,"width":1600}
+CAPTURED_DEBUG /Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/app_build/20261108-024210/installed/captures/debug.png

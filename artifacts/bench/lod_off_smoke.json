@@ -1,0 +1,69 @@
+{
+  "camera": "static",
+  "cpu_render_ms": {
+    "max": 0.879999995231628,
+    "mean": 0.782749995589256,
+    "min": 0.677999973297119,
+    "p50": 0.782999992370605,
+    "p95": 0.879999995231628,
+    "p99": 0.879999995231628
+  },
+  "device": "Apple M2 Pro (Apple8)",
+  "fps_from_frame_ms": 66.9405651457213,
+  "frame_ms": {
+    "max": 17.99,
+    "mean": 14.938625,
+    "min": 13.008,
+    "p50": 14.867,
+    "p95": 17.99,
+    "p99": 17.99
+  },
+  "gi": true,
+  "gpu_ms": {
+    "max": 0.0,
+    "mean": 0.0,
+    "min": 0.0,
+    "p50": 0.0,
+    "p95": 0.0,
+    "p99": 0.0
+  },
+  "gpu_timing_available": false,
+  "measured_frames": 8,
+  "objects": 47.0,
+  "prims": 2207998.0,
+  "raw_frame_ms": [
+    17.99,
+    15.94,
+    14.867,
+    15.911,
+    13.008,
+    14.843,
+    13.023,
+    13.927
+  ],
+  "scene": "forest",
+  "static_mb": {
+    "max": 80.6294918060303,
+    "mean": 80.6275386810303,
+    "min": 80.6254138946533,
+    "p50": 80.6279621124268,
+    "p95": 80.6294918060303,
+    "p99": 80.6294918060303
+  },
+  "tag": "lod_off_smoke",
+  "timing_ms": {
+    "measure_end": 2289,
+    "measure_start": 2169,
+    "ready_start": 1324,
+    "scene_built": 1544
+  },
+  "trees": 60,
+  "viewport": "(1600.0, 900.0)",
+  "warmup_frames": 8,
+  "window": "(1600, 900)",
+  "peak_rss_mb": 462.875,
+  "process_budget_log": "HDDAGI_PROCESS_BUDGET ratio=0.100 cells_per_cascade=104857 bytes_per_buffer=1.60 MiB total_buffers=11.20 MiB (7 buffers)",
+  "rebuild_budget_log": "HDDAGI_REBUILD_BUDGET full_cascades_per_frame=1 (0 = unlimited)",
+  "binary_sha256": "29fa35ed5bc45167ed2e23368a82ecef49f029dd83fb9c31946bbf714eb77a9e",
+  "run_log": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/bench/logs/lod_off_smoke.log"
+}

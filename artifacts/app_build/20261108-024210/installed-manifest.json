@@ -1,0 +1,79 @@
+{
+  "verified_at": "2026-11-08T08:42:43+00:00",
+  "app": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-run/HDDAGI.app",
+  "app_size_bytes": 328473886,
+  "source": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/platform/test_project",
+  "source_commit": "f73568d20e3741ea8a274062f435b512ad2cc1c0",
+  "source_dirty": true,
+  "engine_binary": {
+    "path": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-build/godot-dynamic_gi_2/bin/godot.macos.editor.dev.arm64",
+    "sha256": "a3e594ca1e6748c5506f50e1962b6a31042f1ed508022589f7bf1eb40532c59b",
+    "size_bytes": 269784432,
+    "mtime": "2026-11-08T07:22:58+00:00"
+  },
+  "app_binary": {
+    "path": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-run/HDDAGI.app/Contents/MacOS/godot",
+    "sha256": "a3e594ca1e6748c5506f50e1962b6a31042f1ed508022589f7bf1eb40532c59b",
+    "size_bytes": 269784432
+  },
+  "project": {
+    "source_files": 107,
+    "bundle_files": 107,
+    "source_manifest_sha256": "6a5d68fe500f74bedf80be1e13d2a4c4d28f3394bb8f9306d493440944a2cb32",
+    "bundle_manifest_sha256": "6a5d68fe500f74bedf80be1e13d2a4c4d28f3394bb8f9306d493440944a2cb32",
+    "missing": [],
+    "differing": [],
+    "unexpected_extras": [],
+    "generated_uid_extras": []
+  },
+  "imports": {
+    "import_files": 21,
+    "dest_files_checked": 21,
+    "dest_missing": [],
+    "source_missing": []
+  },
+  "headless": {
+    "command": [
+      "/Users/dawsonblock/Downloads/godot upgraded /hddagi-run/HDDAGI.app/Contents/MacOS/godot",
+      "--headless",
+      "--path",
+      "/Users/dawsonblock/Downloads/godot upgraded /hddagi-run/HDDAGI.app/Contents/Resources/project",
+      "--quit-after",
+      "3"
+    ],
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_s": 0.72,
+    "log": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/app_build/20261108-024210/installed/headless.log",
+    "error_lines": []
+  },
+  "rendered": {
+    "ran": true,
+    "trees": 1500,
+    "exit_code": 0,
+    "elapsed_s": 7.753,
+    "normal": {
+      "height": 900,
+      "max": 221,
+      "mean": 89.77,
+      "min": 18,
+      "path": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/app_build/20261108-024210/installed/captures/normal.png",
+      "range": 203,
+      "width": 1600
+    },
+    "debug": {
+      "height": 900,
+      "max": 123,
+      "mean": 5.28,
+      "min": 0,
+      "path": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/app_build/20261108-024210/installed/captures/debug.png",
+      "range": 123,
+      "width": 1600
+    },
+    "log": "/Users/dawsonblock/Downloads/godot upgraded /hddagi-sparse/artifacts/app_build/20261108-024210/installed/rendered.log"
+  },
+  "failures": [],
+  "notes": [],
+  "limitations": [],
+  "ok": true
+}
