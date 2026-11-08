@@ -1,7 +1,9 @@
 # M0 decision record — HDDAGI sparse bricks
 
-> Status note (added after M1): the M1 CPU oracle is now complete. See
-> `m1_report.md`. This file remains the M0 record and is unchanged below.
+> Status note (added after M1/M2): the M1 CPU oracle is complete (`m1_report.md`),
+> the M2 kernels execute on this machine's GPU (`m2_scaffold.md`), and the engine
+> itself now builds and runs on macOS (`macos_bringup.md`). This file remains the M0
+> record and is unchanged below.
 
 Generated 2026-11-08 from the supplied tree `godot-dynamic_gi_2` (Godot 4.8.0-dev,
 no VCS metadata). Host: macOS arm64. **No engine build was executed. No GPU was

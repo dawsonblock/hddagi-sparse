@@ -42,10 +42,13 @@ tools/
 
 ## Status
 
-**M0 partially complete, M1 complete, M2 scaffolding only.**
+**Engine builds and runs on macOS. M0 partially complete, M1 complete, M2 kernels
+execute on GPU but are not wired into the engine.**
 
-- M0.01, M0.04, M0.06, M0.08 ran here. M0.02, M0.03, M0.05, M0.07 require a
-  Windows 11 + MSVC + Vulkan build and were not executed.
+- **The fork builds and runs on this Mac** (Metal 4, Forward+): 4,421 translation
+  units, HDDAGI smoke scene renders, `DEBUG_DRAW_HDDAGI` shows the voxelised volume.
+  See `artifacts/macos_bringup.md`. The Windows/Vulkan path is still unbuilt, so
+  M0.05 and M0.07 (GPU counters and timings) remain blocked.
 - M1 (CPU oracle) is complete: 43 test cases pass, clean under ASan/UBSan, and the
   suite is proven to fail under deliberate mutation.
 - M2 kernels **execute on this machine's GPU** (Apple M2 Pro, Metal): translation
