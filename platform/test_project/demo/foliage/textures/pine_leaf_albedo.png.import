@@ -18,6 +18,7 @@ dest_files=["res://.godot/imported/pine_leaf_albedo.png-0f42687d23d7f4d2e96af6aa
 
 compress/mode=2
 compress/high_quality=false
+compress/high_quality_mode=0
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

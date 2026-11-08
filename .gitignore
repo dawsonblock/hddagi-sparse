@@ -5,3 +5,5 @@ tests/renderer_hddagi_sparse/build/
 tests/renderer_hddagi_sparse/build-san/
 gpu/build/
 engine/build/
+platform/test_project/.godot/
+platform/test_project/override.cfg

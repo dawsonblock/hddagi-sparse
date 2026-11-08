@@ -18,6 +18,7 @@ dest_files=["res://.godot/imported/grass_albedo.png-6ef1d979a949f4eae7147f2bb837
 
 compress/mode=2
 compress/high_quality=false
+compress/high_quality_mode=0
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

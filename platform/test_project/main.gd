@@ -25,6 +25,17 @@ func _ready() -> void:
 	var trees := int(OS.get_environment("HDDAGI_TREES")) if OS.get_environment("HDDAGI_TREES") != "" else 600
 	var capture := OS.get_environment("HDDAGI_CAPTURE") == "1"
 
+	# Captures are compared pixel for pixel, so neither the overlay nor the animated
+	# foliage may appear in them. The autoloads are already up by the time the scene
+	# runs, so they are switched off here rather than through the environment.
+	if capture:
+		var hud := get_node_or_null("/root/Hud")
+		if hud:
+			hud.set_hud_visible(false)
+		var wind := get_node_or_null("/root/Wind")
+		if wind:
+			wind.set_wind_enabled(false)
+
 	_noise.seed = 4242
 	_noise.frequency = 0.012
 	_noise.fractal_octaves = 4
@@ -254,6 +265,9 @@ func _add_forest(count: int, radius: float) -> void:
 			gm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(s, s, s)), pos))
 		var gn := MultiMeshInstance3D.new()
 		gn.multimesh = gm
+		# Grass casting shadows costs 4.44 ms/frame (15.5% of a 28.6 ms frame) and
+		# changes 0.01% of pixels in this scene: the floor is already in foliage shade.
+		gn.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(gn)
 
 func _capture(path: String) -> void:

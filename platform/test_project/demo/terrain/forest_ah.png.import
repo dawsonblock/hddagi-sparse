@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://2kj3t5qrfb2h"
-path.s3tc="res://.godot/imported/forest_ah.png-51a8148733929b5a2f45778b0d735cc1.s3tc.ctex"
+path.s3tc="res://.godot/imported/forest_ah.png-577dd65afce35245d650d7e364b7898f.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,13 +11,14 @@ metadata={
 
 [deps]
 
-source_file="res://demo/terrain/textures/forest_ah.png"
-dest_files=["res://.godot/imported/forest_ah.png-51a8148733929b5a2f45778b0d735cc1.s3tc.ctex"]
+source_file="res://demo/terrain/forest_ah.png"
+dest_files=["res://.godot/imported/forest_ah.png-577dd65afce35245d650d7e364b7898f.s3tc.ctex"]
 
 [params]
 
 compress/mode=2
 compress/high_quality=false
+compress/high_quality_mode=0
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

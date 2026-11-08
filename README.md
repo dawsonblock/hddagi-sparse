@@ -19,6 +19,11 @@ artifacts/
   m2_scaffold.md          M2 scaffold: capability table, shader map, integration recipe
   macos_bringup.md        engine builds and HDDAGI renders on Metal
   light_process_buffers.md measured: 56 -> 28 MiB default (11.2 MiB safe) on a dense forest
+  phase2_baseline.md      measured: frame times, GI cost 0.7-3.4 ms, teleport hitch
+  teleport_hitch.md       root cause + fix: worst frame 106 -> 64 ms, stutter -90%
+  wind.md                 foliage sway: globals registered, calibrated, ~0.1 ms cost
+  frame_budget.md         where the frame goes; grass shadows removed for 15.5%
+  bench/                  per-run JSON from the Phase 2 harness; README.md indexes it
 tests/renderer_hddagi_sparse/
   hddagi_brick_layout.h       grid, coordinate conversion, atlas addressing
   hddagi_brick_allocator.*    page table, states, generations, scroll replay
@@ -42,23 +47,51 @@ platform/
   make_mac_app.sh             builds the double-clickable HDDAGI.app
   engine_changes.patch        every engine change as a diff against the supplied tree
   build_and_run.sh            build in a copy, run the smoke project
-  test_project/               HDDAGI smoke scene with frame capture
+  test_project/               HDDAGI smoke scene with frame capture, plus bench.gd
+    hddagi_hud.gd             performance HUD, top-left; autoloaded, F3 toggles
+    hddagi_wind.gd            registers the foliage wind globals and gusts them
+    hddagi_settings_menu.gd   F1 menu: wind, lighting, fog, overlay toggle
 tools/
   make_manifest.py        M0.01
   hddagi_allocations.py   M0.04
   check_shader_sites.py   M0.06 coverage enforcement
   memory_model.py         M0.08
+  bench_run.sh            Phase 2 runner: one config -> artifacts/bench/<tag>.json
+  check_engine_copies.sh  verifies platform/ copies and that the patch reproduces them
 ```
 
 ## Status
 
 **Engine builds and runs on macOS. M0 partially complete, M1 complete, M2 kernels
-execute on GPU but are not wired into the engine.**
+execute on GPU but are not wired into the engine, and Phase 2 frame times are
+measured.**
 
 - **The fork builds and runs on this Mac** (Metal 4, Forward+): 4,421 translation
   units, HDDAGI smoke scene renders, `DEBUG_DRAW_HDDAGI` shows the voxelised volume.
   See `artifacts/macos_bringup.md`. The Windows/Vulkan path is still unbuilt, so
   M0.05 and M0.07 (GPU counters and timings) remain blocked.
+- **Frame times and resident memory are now measured** (`artifacts/phase2_baseline.md`):
+  GI costs 4.9–8.6 ms per frame (17–30%) in a 600-tree forest, rising with camera
+  dynamism (static 4.92, move 6.20, teleport 8.55 ms). Every teleport costs a ~100 ms
+  hitch that does not occur with GI off. HDDAGI's resident footprint is ~100 MB, about
+  a third of the 291.6 MiB declared estimate — and the 56 → 11.2 MiB light-process
+  reduction changes neither frame time nor resident memory, so it is an allocation
+  saving rather than a residency saving. GPU timestamps do not exist on the Metal
+  driver in this fork, so these are wall-clock frame times with CPU render time
+  recorded alongside as a GPU-bound check.
+- **The frame budget is measured** (`artifacts/frame_budget.md`). Shadows are 38% of
+  the frame, more than GI, volumetric fog and MSAA combined. Grass shadow casting cost
+  4.44 ms and changed 0.01% of pixels, so it is now off: **28.60 → 24.16 ms, 35 → 41
+  FPS**. Shadow map resolution was ruled out as a lever (4096 → 1024 saves 0.34 ms);
+  the cost is geometry, not fill rate.
+- **The teleport hitch is fixed** (`artifacts/teleport_hitch.md`). A teleport marked
+  every cascade dirty and rebuilt all six in one frame; at ~13-15 ms per cascade that
+  was a ~100 ms freeze. `rendering/global_illumination/hddagi/full_rebuild_budget`
+  (default 1) now spreads them: worst frame 106 -> 64 ms, frames over 80 ms 9 -> 0,
+  total time in frames over 50 ms 1325 -> 127 ms (-90%), median unchanged. Converged
+  images are identical (0.007% of pixels); only the transition differs. A separate,
+  larger defect remains: first visit to a viewpoint costs ~700 ms per frame for
+  several frames, which is synchronous pipeline compilation, not cascade work.
 - M1 (CPU oracle) is complete: 43 test cases pass, clean under ASan/UBSan, and the
   suite is proven to fail under deliberate mutation.
 - M2 kernels **execute on this machine's GPU** (Apple M2 Pro, Metal): translation
@@ -69,6 +102,79 @@ execute on GPU but are not wired into the engine.**
 Read `artifacts/decision.md` for the M0 gate and `artifacts/m1_report.md` for M1.
 
 No number in `artifacts/` is a VRAM measurement. They are source-derived arithmetic.
+
+## Foliage wind
+
+The forest sways. The foliage shaders declare five `global uniform` wind parameters and
+every material already sets `wind_enabled = true`, but nothing in this fork registered
+them, so every material warned "Shader uses global parameter ... but it was removed"
+on every frame and nothing moved. `platform/test_project/hddagi_wind.gd` registers them
+and drives a gust envelope on `wind_power`.
+
+Only `wind_power` is animated: `wind_velocity`, `wind_turbulence` and
+`wind_sway_frequencies` are **phase** terms in the shader (`wind_time = TIME -
+dot(world_pos.xz, wind_effective_velocity)`), so varying them pops the whole forest at
+once. Details and calibration in `artifacts/wind.md`.
+
+Measured: 46% of pixels change between frames 3 s apart with a static camera, at a cost
+of **≤0.1 ms** — the shader was already running the wind branch, so enabling it changes
+values, not instruction count. `HDDAGI_WIND=0` pins `wind_power` to zero while leaving
+the globals registered, so the shaders take the same path and log the same warnings as
+with wind on while the foliage stays still; the benchmark runner sets that so timings
+stay comparable with the pre-wind baseline. Capture mode (`HDDAGI_CAPTURE=1`) turns wind
+off for the same reason it hides the HUD: captures are compared pixel for pixel.
+
+## Settings menu (F1)
+
+`platform/test_project/hddagi_settings_menu.gd` adds a panel on the right, opened and
+closed with **F1**, that adjusts the running scene live:
+
+| section | controls |
+|---|---|
+| Wind | enabled, strength, gust depth |
+| Lighting | HDDAGI indirect on/off, GI energy, sun energy, sun elevation, sun azimuth, ambient, exposure |
+| Fog | depth fog on/off + density, volumetric fog on/off + density, length, anisotropy |
+| Overlay | show CPU / GPU / FPS (same switch as F3) |
+
+It locates the scene's `WorldEnvironment` and `DirectionalLight3D` when it opens rather
+than requiring the scene to register them, so it works in both `main.tscn` and
+`bench.tscn`, and it re-reads the live values on every open so the controls never
+disagree with the scene.
+
+Wind strength and gust depth are the only wind controls exposed, because the other wind
+parameters are phase terms in the shader and would pop the forest — see `artifacts/wind.md`.
+
+Cost is **+0.007 ms** while open and zero when closed (its `_process` is disabled
+outside the open state). `HDDAGI_MENU=0` disables it entirely; `tools/bench_run.sh`
+sets that so benchmark timings are unaffected.
+
+## Performance HUD
+
+The running project shows a HUD in the top-left, autoloaded from
+`platform/test_project/hddagi_hud.gd`:
+
+```
+19.0 FPS  peak 147.5
+frame 37.49 ms
+cpu   2.80 ms   7%
+gpu  34.69 ms  93% (est)
+mem  81.8 MB
+```
+
+- `FPS` is wall-clock rate; it turns amber below 55 and red below 30.
+- `peak` appears only when the worst frame in the refresh window is more than twice
+  the mean, so a hitch is not averaged away.
+- `cpu` is `viewport_get_measured_render_time_cpu` and its share of the frame.
+- `gpu` is `viewport_get_measured_render_time_gpu` where the backend supports it.
+  **On Metal in this fork it always reads 0** — `rendering_device_driver_metal.cpp:2430`
+  clears the timestamp buffer because Metal timestamps are unimplemented — so the HUD
+  falls back to `frame - cpu` and labels the line `(est)`. It is an estimate and is
+  marked as one; it is never presented as a measurement.
+- `mem` is `Performance.MEMORY_STATIC`.
+
+F3 hides it. `HDDAGI_HUD=0` disables it entirely; `tools/bench_run.sh` sets that by
+default because the overlay costs a measurable **0.32 ms/frame (1.1%)** on the
+600-tree forest (28.30 → 28.62 ms p50).
 
 ## Quick start
 
@@ -83,6 +189,14 @@ python3 tools/memory_model.py --subsystem-mib 291.628 \
 `check_shader_sites.py` exits non-zero when a shader payload access exists that is not
 registered in `shader_sites.json`. It is intended to be run after every shader change
 in later milestones.
+
+```bash
+./tools/check_engine_copies.sh
+```
+
+`check_engine_copies.sh` fails if the copies of the sparse self-test in `platform/`, the
+engine patch and the build tree disagree, or if `engine_changes.patch` no longer applies
+with `-p1` to the supplied tree and reproduces the build byte for byte.
 
 ```bash
 cd tests/renderer_hddagi_sparse

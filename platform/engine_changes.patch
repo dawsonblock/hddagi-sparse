@@ -1,9 +1,10 @@
 --- godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp	2026-09-04 12:34:44
-+++ hddagi-build/godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp	2026-11-07 21:04:21
-@@ -351,7 +351,129 @@
++++ hddagi-build/godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.cpp	2026-11-07 22:55:25
+@@ -350,6 +350,128 @@
+ 	RD::get_singleton()->texture_clear(texture, Color(0, 0, 0, 0), 0, p_format.mipmaps, 0, p_format.array_layers);
  
  	return texture;
- }
++}
 +
 +
 +#include "hddagi_sparse_plan.h"
@@ -77,7 +78,7 @@
 +			rd->free_rid(b);
 +		}
 +	}
- 
++
 +	hddagi_sparse::SparseRequest req;
 +	req.cascade_count = p_cascades;
 +	req.grid[0] = p_cascade_size.x;
@@ -125,26 +126,26 @@
 +			}
 +		}
 +	}
-+}
-+
+ }
+ 
  void GI::HDDAGI::create(RID p_env, const Vector3 &p_world_anchor, const Vector3 &p_planar_world_forward, float p_cascade_forward_offset, uint32_t p_requested_history_size, GI *p_gi) {
- 	//RendererRD::TextureStorage *texture_storage = RendererRD::TextureStorage::get_singleton();
- 	//RendererRD::MaterialStorage *material_storage = RendererRD::MaterialStorage::get_singleton();
-@@ -394,8 +516,12 @@
+@@ -394,8 +516,14 @@
  	version = gi->hddagi_current_version;
  	cascades.resize(num_cascades);
  
 -	solid_cell_ratio = gi->hddagi_solid_cell_ratio;
 +	solid_cell_ratio = CLAMP(float(GLOBAL_GET("rendering/global_illumination/hddagi/solid_cell_ratio")), 0.01f, 1.0f);
  	solid_cell_count = uint32_t(float(cascade_size.x * cascade_size.y * cascade_size.z) * solid_cell_ratio);
++	full_rebuild_budget = uint32_t(CLAMP(int(GLOBAL_GET("rendering/global_illumination/hddagi/full_rebuild_budget")), 0, int(MAX_CASCADES)));
 +	print_line(vformat("HDDAGI_PROCESS_BUDGET ratio=%.3f cells_per_cascade=%d bytes_per_buffer=%.2f MiB total_buffers=%.2f MiB (7 buffers)",
 +			double(solid_cell_ratio), int(solid_cell_count),
 +			double(solid_cell_count) * 16.0 / (1024.0 * 1024.0),
 +			double(solid_cell_count) * 16.0 * 7.0 / (1024.0 * 1024.0)));
++	print_line(vformat("HDDAGI_REBUILD_BUDGET full_cascades_per_frame=%d (0 = unlimited)", int(full_rebuild_budget)));
  
  	float base_cell_size = min_cell_size;
  
-@@ -646,6 +772,8 @@
+@@ -646,6 +774,8 @@
  	probe_bias = RendererSceneRenderRD::get_singleton()->environment_get_hddagi_probe_bias(p_env);
  	occlusion_bias = RendererSceneRenderRD::get_singleton()->environment_get_hddagi_occlusion_bias(p_env);
  	reads_sky = RendererSceneRenderRD::get_singleton()->environment_get_hddagi_read_sky_light(p_env);
@@ -153,10 +154,53 @@
  }
  
  void GI::HDDAGI::render_region(Ref<RenderSceneBuffersRD> p_render_buffers, int p_region, const PagedArray<RenderGeometryInstance *> &p_instances, float p_exposure_normalization) {
-@@ -1179,6 +1307,23 @@
- 		idx++;
- 	}
+@@ -1109,9 +1239,13 @@
  
+ 	int32_t drag_margin = REGION_CELLS / 2;
+ 
++	uint32_t full_rebuilds_issued = 0;
++
+ 	int idx = 0;
+ 	for (HDDAGI::Cascade &cascade : cascades) {
+ 		cascade.dirty_regions = Vector3i();
++		const Vector3i previous_position = cascade.position;
++		const Vector3 previous_blend_position = cascade.blend_position;
+ 
+ 		Vector3 probe_half_size = Vector3(1, 1, 1) * cascade.cell_size * float(REGION_CELLS) * 0.5;
+ 		probe_half_size = Vector3(0, 0, 0);
+@@ -1158,7 +1292,26 @@
+ 			if (dirty_volume > (safe_volume / 2)) {
+ 				//more than half the volume is dirty, make all dirty so its only rendered once
+ 				cascade.dirty_regions = HDDAGI::Cascade::DIRTY_ALL;
++			}
++		}
++
++		if (cascade.dirty_regions == HDDAGI::Cascade::DIRTY_ALL && full_rebuild_budget > 0) {
++			if (full_rebuilds_issued >= full_rebuild_budget) {
++				// A teleport invalidates every cascade at once, and rebuilding them all in
++				// one frame is a multi-frame hitch. The remainder wait for later frames.
++				//
++				// The position is restored rather than left at the target: a cascade whose
++				// voxel data still describes the old world region must keep claiming that
++				// region, or its content is read as if it belonged to the new one. Leaving
++				// it put also re-triggers the same detection next frame, which is what
++				// makes the deferral self-resuming without any extra state.
++				cascade.position = previous_position;
++				cascade.blend_position = previous_blend_position;
++				cascade.dirty_regions = Vector3i();
++				idx++;
++				continue;
+ 			}
++			full_rebuilds_issued++;
+ 		}
+ 
+ 		if (cascade.dirty_regions != Vector3i()) {
+@@ -1177,6 +1330,23 @@
+ 		}
+ 
+ 		idx++;
++	}
++
 +	// TEMPORARY MEASUREMENT: process-cell usage per cascade, read at the start of a
 +	// frame so the previous frame's light-store dispatch has actually completed.
 +	// This is the number that decides whether solid_cell_ratio can be lowered.
@@ -172,24 +216,36 @@
 +						double(v[3]) * 100.0 / double(solid_cell_count)));
 +			}
 +		}
-+	}
-+
- 	update_frame++;
- }
+ 	}
  
+ 	update_frame++;
+--- godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.h	2026-09-04 12:34:44
++++ hddagi-build/godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/gi.h	2026-11-07 22:55:21
+@@ -847,6 +847,12 @@
+ 
+ 		uint32_t update_frame = 0;
+ 		uint32_t frames_to_converge = 6;
++
++		// Maximum number of cascades allowed to enter a full (DIRTY_ALL) rebuild in a
++		// single frame. A camera teleport invalidates every cascade at once, and doing
++		// all of them in one frame produces a multi-frame hitch. 0 disables the cap and
++		// restores the original "rebuild everything now" behaviour.
++		uint32_t full_rebuild_budget = 1;
+ 
+ 		bool using_probe_filter = true;
+ 		bool using_reflection_filter = true;
 --- godot-dynamic_gi_2/servers/rendering/rendering_server.cpp	2026-09-04 12:34:44
-+++ hddagi-build/godot-dynamic_gi_2/servers/rendering/rendering_server.cpp	2026-11-07 21:04:21
-@@ -3825,7 +3825,20 @@
- 		project_settings->set_setting(light_update_setting, old_value);
++++ hddagi-build/godot-dynamic_gi_2/servers/rendering/rendering_server.cpp	2026-11-07 22:55:28
+@@ -3826,6 +3826,25 @@
  	}
  #endif
-+
+ 
 +	// Runs the sparse-brick GPU self-test once at HDDAGI creation: creates the atlas
 +	// and page table, dispatches the four kernels against CPU-generated fixtures, and
 +	// logs pass/fail. Dev-only; it is a bring-up tool, not a shipping path.
 +	GLOBAL_DEF("rendering/global_illumination/hddagi/sparse_selftest", false);
 +	GLOBAL_DEF("rendering/global_illumination/hddagi/sparse_selftest_fixtures", "");
- 
++
 +	// Fraction of the voxel count used to pre-size the per-cascade light-process
 +	// work lists. Measured demand was 6.7% of voxels in a dense forest and 2.6% in
 +	// a small room, so 0.25 keeps 3.7x headroom while halving the buffers. Lower it
@@ -197,11 +253,17 @@
 +	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/global_illumination/hddagi/solid_cell_ratio", PROPERTY_HINT_RANGE, "0.01,1.0,0.01"), 0.25);
 +	GLOBAL_DEF("rendering/global_illumination/hddagi/debug_process_cells", false);
 +
++	// How many cascades may enter a full rebuild in one frame. A camera teleport
++	// invalidates all of them at once; measured cost is ~13-15 ms per cascade, so
++	// rebuilding six in one frame produced a ~100 ms hitch. 0 restores the old
++	// behaviour and rebuilds everything immediately.
++	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/full_rebuild_budget", PROPERTY_HINT_RANGE, "0,8,1"), 1);
++
  	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_converge", PROPERTY_HINT_ENUM, "6 (Less Latency/Mem usage & Low Quality),12,18,24,32 (More Latency / Mem Usage & High Quality)"), 1);
  	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_update_lights", PROPERTY_HINT_ENUM, "1 (Faster),2,4,8,16 (Slower)"), 2);
  	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/hddagi/frames_to_update_inactive_probes", PROPERTY_HINT_ENUM, "1 (Faster),2,4,8 (Slower)"), 3);
---- a/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.h	2026-11-07 21:07:49
-+++ b/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.h
+--- /dev/null	2026-11-07 23:00:01
++++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.h	2026-11-07 20:24:57
 @@ -0,0 +1,181 @@
 +// M2.01 / M2.04 decision core, free of RenderingDevice dependencies.
 +//
@@ -384,8 +446,8 @@
 +		uint32_t max_workgroups_x = 65535);
 +
 +} // namespace hddagi_sparse
---- a/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.cpp	2026-11-07 21:07:49
-+++ b/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.cpp
+--- /dev/null	2026-11-07 23:00:01
++++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_plan.cpp	2026-11-07 20:24:57
 @@ -0,0 +1,245 @@
 +#include "hddagi_sparse_plan.h"
 +
@@ -632,8 +694,8 @@
 +}
 +
 +} // namespace hddagi_sparse
---- a/servers/rendering/renderer_rd/environment/hddagi_sparse_selftest.h	2026-11-07 21:07:49
-+++ b/servers/rendering/renderer_rd/environment/hddagi_sparse_selftest.h
+--- /dev/null	2026-11-07 23:00:01
++++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_selftest.h	2026-11-07 21:04:21
 @@ -0,0 +1,44 @@
 +// In-engine self-test for the sparse-brick GPU path (M2.02 - M2.05).
 +//
@@ -679,8 +741,8 @@
 +		int p_cascades, const Vector3i &p_grid);
 +
 +} // namespace hddagi_sparse
---- a/servers/rendering/renderer_rd/environment/hddagi_sparse_selftest.cpp	2026-11-07 21:07:49
-+++ b/servers/rendering/renderer_rd/environment/hddagi_sparse_selftest.cpp
+--- /dev/null	2026-11-07 23:00:01
++++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_selftest.cpp	2026-11-07 21:07:16
 @@ -0,0 +1,377 @@
 +#include "hddagi_sparse_selftest.h"
 +
@@ -1059,8 +1121,8 @@
 +}
 +
 +} // namespace hddagi_sparse
---- a/servers/rendering/renderer_rd/environment/hddagi_sparse_shaders.inc	2026-11-07 21:07:49
-+++ b/servers/rendering/renderer_rd/environment/hddagi_sparse_shaders.inc
+--- /dev/null	2026-11-07 23:00:01
++++ godot-dynamic_gi_2/servers/rendering/renderer_rd/environment/hddagi_sparse_shaders.inc	2026-11-07 21:05:15
 @@ -0,0 +1,431 @@
 +// Generated by platform/gen_shader_inc.py. Do not edit by hand.
 +// The #version line is stripped; the self-test prepends it so it stays first.
