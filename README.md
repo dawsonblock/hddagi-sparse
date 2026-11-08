@@ -18,7 +18,7 @@ artifacts/
   m1_report.md            M1 record: semantics, test inventory, mutation evidence
   m2_scaffold.md          M2 scaffold: capability table, shader map, integration recipe
   macos_bringup.md        engine builds and HDDAGI renders on Metal
-  light_process_buffers.md measured 56 -> 5.6 MiB with an identical frame
+  light_process_buffers.md measured: 56 -> 11.2 MiB on a dense forest, image identical
 tests/renderer_hddagi_sparse/
   hddagi_brick_layout.h       grid, coordinate conversion, atlas addressing
   hddagi_brick_allocator.*    page table, states, generations, scroll replay

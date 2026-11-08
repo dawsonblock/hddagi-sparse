@@ -1,19 +1,20 @@
 extends Node3D
 
-# HDDAGI smoke scene.
+# HDDAGI stress scene.
 #
-# Builds a minimal lit scene, enables dynamic GI, then captures two frames:
-#   /tmp/hddagi_normal.png   normal shading
-#   /tmp/hddagi_debug.png    Viewport.DEBUG_DRAW_HDDAGI, which renders the cascade
-#                            volume by reading the HDDAGI textures directly
+# Density is controlled by the HDDAGI_TREES environment variable so one project can
+# sweep from an empty room to a dense canopy without editing files between runs.
 #
-# An error-free run is not proof of anything: a black frame is also error-free.
-# The captures are the actual check.
+# Captures /tmp/hddagi_normal.png and /tmp/hddagi_debug.png, and prints the
+# process-cell demand per cascade via the engine-side readback.
 
 const OUT_NORMAL := "/tmp/hddagi_normal.png"
 const OUT_DEBUG := "/tmp/hddagi_debug.png"
 
 func _ready() -> void:
+	var trees := int(OS.get_environment("HDDAGI_TREES")) if OS.get_environment("HDDAGI_TREES") != "" else 0
+	var capture := OS.get_environment("HDDAGI_CAPTURE") != "0"
+
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
@@ -30,10 +31,19 @@ func _ready() -> void:
 	we.environment = env
 	add_child(we)
 
+	# Dense forest at roughly one tree per 3 m^2, with the camera inside it at eye
+	# height. That is the case that stresses the finest cascades: what matters is
+	# geometry near the camera, not total tree count.
+	var forest_radius := clampf(sqrt(float(trees) * 3.0 / PI), 8.0, 200.0)
+
 	var cam := Camera3D.new()
 	add_child(cam)
-	cam.position = Vector3(0.0, 2.5, 7.0)
-	cam.look_at(Vector3(0.0, 0.5, 0.0), Vector3.UP)
+	if trees > 0:
+		cam.position = Vector3(0.0, 1.8, 9.0)
+		cam.look_at(Vector3(0.0, 1.6, 0.0), Vector3.UP)
+	else:
+		cam.position = Vector3(0.0, 2.5, 7.0)
+		cam.look_at(Vector3(0.0, 0.5, 0.0), Vector3.UP)
 	cam.current = true
 
 	var sun := DirectionalLight3D.new()
@@ -44,15 +54,15 @@ func _ready() -> void:
 
 	var ground := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(24.0, 24.0)
+	plane.size = Vector2(80.0, 80.0)
 	ground.mesh = plane
 	add_child(ground)
 
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.75, 0.72, 0.68)
+	mat.albedo_color = Color(0.42, 0.45, 0.38)
 	ground.material_override = mat
 
-	# A room-like arrangement so indirect light has somewhere to bounce.
+	# A fixed room so the low-density case stays comparable to the earlier run.
 	for i in range(5):
 		var wall := MeshInstance3D.new()
 		var bm := BoxMesh.new()
@@ -61,22 +71,21 @@ func _ready() -> void:
 		wall.position = Vector3(float(i) * 1.6 - 3.2, 1.0, -1.5)
 		add_child(wall)
 
-	for i in range(6):
-		var box := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(0.6, 0.6 + float(i % 4) * 0.4, 0.6)
-		box.mesh = bm
-		box.position = Vector3(float(i % 3) * 1.4 - 1.4, 0.5, float(i / 3) * 1.6)
-		add_child(box)
+	if trees > 0:
+		_add_forest(trees, forest_radius)
 
-	print("HDDAGI_SMOKE_READY")
+	print("HDDAGI_SMOKE_READY trees=", trees)
 	print("dynamic_gi_enabled = ", env.dynamic_gi_enabled)
 	print("cascades = ", env.dynamic_gi_cascades)
 	print("renderer = ", RenderingServer.get_current_rendering_method())
 
-	# Let the GI pipeline converge a little before capturing.
 	for i in range(60):
 		await get_tree().process_frame
+
+	if not capture:
+		get_tree().quit()
+		return
+
 	await RenderingServer.frame_post_draw
 	_capture(OUT_NORMAL)
 	print("CAPTURED_NORMAL ", OUT_NORMAL)
@@ -91,6 +100,54 @@ func _ready() -> void:
 		print("CAPTURED_DEBUG ", OUT_DEBUG)
 
 	get_tree().quit()
+
+func _add_forest(count: int, radius: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 12345
+
+	# Trunks: thin and tall, many surface voxels per unit of screen area.
+	var trunk_mesh := CylinderMesh.new()
+	trunk_mesh.top_radius = 0.08
+	trunk_mesh.bottom_radius = 0.12
+	trunk_mesh.height = 3.0
+	trunk_mesh.radial_segments = 6
+
+	var canopy_mesh := BoxMesh.new()
+	canopy_mesh.size = Vector3(1.1, 1.4, 1.1)
+
+	var trunk_mm := MultiMesh.new()
+	trunk_mm.transform_format = MultiMesh.TRANSFORM_3D
+	trunk_mm.mesh = trunk_mesh
+	trunk_mm.instance_count = count
+
+	var canopy_mm := MultiMesh.new()
+	canopy_mm.transform_format = MultiMesh.TRANSFORM_3D
+	canopy_mm.mesh = canopy_mesh
+	canopy_mm.instance_count = count
+
+	for i in range(count):
+		var angle := rng.randf() * TAU
+		var dist := sqrt(rng.randf()) * radius
+		var pos := Vector3(cos(angle) * dist, 0.0, sin(angle) * dist)
+		var scale := 0.7 + rng.randf() * 0.8
+		trunk_mm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(scale, scale, scale)), pos + Vector3(0, 1.5 * scale, 0)))
+		canopy_mm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(scale, scale, scale)), pos + Vector3(0, 3.2 * scale, 0)))
+
+	var trunk_node := MultiMeshInstance3D.new()
+	trunk_node.multimesh = trunk_mm
+	add_child(trunk_node)
+
+	var canopy_node := MultiMeshInstance3D.new()
+	canopy_node.multimesh = canopy_mm
+	add_child(canopy_node)
+
+	var bark := StandardMaterial3D.new()
+	bark.albedo_color = Color(0.25, 0.19, 0.14)
+	trunk_node.material_override = bark
+
+	var leaf := StandardMaterial3D.new()
+	leaf.albedo_color = Color(0.18, 0.32, 0.16)
+	canopy_node.material_override = leaf
 
 func _capture(path: String) -> void:
 	var vp := get_viewport()
