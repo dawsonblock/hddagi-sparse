@@ -16,9 +16,11 @@ oracle on 1,180 fixtures.
 | Struct layouts are 16 / 32 / 32 bytes | `static_assert`, verified at runtime |
 | The GPU-shaped allocator respects capacity and never aliases | 300 requests into 256 pages: 256 allocated, 44 overflowed, 256 distinct page ids |
 | Canary encoding is a bijection over (page, local) | 32,768 distinct values, one corrupted texel detected and located |
+| Capability decisions are correct and fail closed | 14 cases in `engine/`, including one per refusal reason |
+| Dispatch sizing and push-constant layout are right | 14 cases, incl. workgroup-limit splitting for a 12,288-page pool |
 
-Reproduce with `gpu/build.sh`. It regenerates fixtures, compiles and validates every
-shader, then runs the twin tests (7 cases).
+Reproduce with `gpu/build.sh` (shaders + twin, 7 cases) and `engine/build.sh`
+(decision core, 14 cases).
 
 **The twin is a transcription of the GLSL, not an independent implementation.**
 Agreement with the M1 oracle validates the algorithm and the layout contract; it
@@ -55,6 +57,22 @@ Sources for the exact names: `rendering_device_commons.h:402-408` (usage bits),
 `:433-446` (`TextureFormat`), `:988-989` (`LIMIT_MAX_TEXTURE_SIZE_2D/3D`),
 `rendering_device.h:469` (`texture_create`), `:1063` (`storage_buffer_create`),
 `:1199` (`uniform_set_create`), `:1286` (`compute_pipeline_create`).
+
+## 3a. Decision core (`engine/`)
+
+The engine side splits into two pieces that need no RenderingDevice at all, so both
+are implemented and tested here rather than deferred to the Windows box:
+
+| file | responsibility |
+|---|---|
+| `hddagi_sparse_plan.h/.cpp` | `plan_sparse_resources()`: run the seven capability checks, factorise page slots, reduce or refuse capacity, compute every byte of the resource budget |
+| | `plan_dispatch()`: workgroup counts, push-constant blocks, canary pass splitting |
+| `test_sparse_plan.cpp` | 14 cases, including one per refusal reason and a byte-layout check |
+| `RD_ADAPTER.md` | the uncompiled recipe: how to fill `DeviceCaps` from probes, create the resources, and order the dispatches |
+
+The split matters because it moves the risky arithmetic off the critical path. When
+the Windows build happens, only the RD calls in `RD_ADAPTER.md` remain untested; the
+decisions they feed are already proven.
 
 ## 4. Resource budget
 

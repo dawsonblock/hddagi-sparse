@@ -20,10 +20,11 @@ layout(push_constant) uniform PC {
 	uint page_count;
 	uint page_slots_x;
 	uint page_slots_y;
+	uint offset;
 } pc;
 
 void main() {
-	uint index = gl_GlobalInvocationID.x;
+	uint index = pc.offset + gl_GlobalInvocationID.x;
 	uint total = pc.page_count * 512u;
 	if (index >= total) {
 		return;

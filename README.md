@@ -23,6 +23,10 @@ tests/renderer_hddagi_sparse/
   test_*.cpp                  43 cases, dependency-free
   run_tests.sh                build + run
   fixtures/                   deterministic GPU-facing vectors
+engine/
+  hddagi_sparse_plan.h/.cpp   capability checks + dispatch planning, no RD dependency
+  test_sparse_plan.cpp        14 cases
+  RD_ADAPTER.md               uncompiled RenderingDevice integration recipe
 gpu/
   shaders/                    four compute shaders, compiled and SPIR-V validated
   hddagi_sparse_gpu_model.h   CPU twin of those shaders, same byte layouts
@@ -44,9 +48,10 @@ tools/
   Windows 11 + MSVC + Vulkan build and were not executed.
 - M1 (CPU oracle) is complete: 43 test cases pass, clean under ASan/UBSan, and the
   suite is proven to fail under deliberate mutation.
-- M2 is scaffolding: four compute shaders compile to validated SPIR-V and a CPU twin
-  agrees with the M1 oracle on 1,180 fixtures. **Nothing has run on a GPU**, so the
-  M2 gate is not met. See `artifacts/m2_scaffold.md`.
+- M2 is scaffolding: four compute shaders compile to validated SPIR-V, a CPU twin
+  agrees with the M1 oracle on 1,180 fixtures, and the capability/dispatch decision
+  core is implemented and tested (14 cases). **Nothing has run on a GPU**, so the M2
+  gate is not met. See `artifacts/m2_scaffold.md`.
 
 Read `artifacts/decision.md` for the M0 gate and `artifacts/m1_report.md` for M1.
 
@@ -76,4 +81,7 @@ CXXFLAGS="-fsanitize=address,undefined" BUILD=build-san ./run_tests.sh
 ```bash
 cd gpu
 ./build.sh                     # compile + validate shaders, run the twin tests
+
+cd ../engine
+./build.sh                     # capability and dispatch decisions
 ```
