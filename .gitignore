@@ -1,0 +1,3 @@
+artifacts/*.tmp
+*.pyc
+__pycache__/

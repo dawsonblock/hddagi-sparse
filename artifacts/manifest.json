@@ -1,0 +1,92 @@
+{
+  "generated_utc": "2026-11-08T01:15:23+00:00",
+  "generator": "tools/make_manifest.py",
+  "host": {
+    "platform": "macOS-26.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.9.6"
+  },
+  "archive": {
+    "path": "godot upgraded .zip",
+    "sha256": "5cfbab8cc4709878306b74e2827c8a1f8559b357227f89cc32726229ebae1948",
+    "bytes": 245759773
+  },
+  "trees": {
+    "godot-dynamic_gi_2": {
+      "present": true,
+      "tree_sha256": "f3424c5813f6139011e6b139c38007576bf58333ae1bb093ddb16fd00b9bde8a",
+      "file_count": 14232,
+      "bytes": 337648506,
+      "version": {
+        "short_name": "godot",
+        "name": "Godot Engine",
+        "major": "4",
+        "minor": "8",
+        "patch": "0",
+        "status": "dev",
+        "module_config": "",
+        "present": true
+      },
+      "git": {
+        "repository": false,
+        "commit": "unknown",
+        "reason": "no .git directory in supplied tree"
+      },
+      "upstream_evidence": {
+        "changelog_head": [
+          "# Changelog",
+          "",
+          "This file lists all changes made between the current feature branch and the",
+          "previous feature release. It is equivalent to the listings on our",
+          "[interactive changelog](https://godotengine.github.io/godot-interactive-changelog/).",
+          ""
+        ],
+        "core_version_h": [
+          "/**************************************************************************/",
+          "/*  version.h                                                             */",
+          "/**************************************************************************/",
+          "/*                         This file is part of:                          */",
+          "/*                             GODOT ENGINE                               */",
+          "/*                        https://godotengine.org                         */",
+          "/**************************************************************************/",
+          "/* Copyright (c) 2014-present Godot Engine contributors (see AUTHORS.md). */",
+          "/* Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur.                  */",
+          "/*                                                                        */"
+        ]
+      }
+    },
+    "Terrain3D-main": {
+      "present": true,
+      "tree_sha256": "21940789b7a9d4f2ab5c9a57c378a6807ac6b0ad5e186156753c93c482762d16",
+      "file_count": 438,
+      "bytes": 49548441,
+      "version": {
+        "present": false
+      },
+      "git": {
+        "repository": false,
+        "commit": "unknown",
+        "reason": "no .git directory in supplied tree"
+      }
+    },
+    "Foliage3D-master": {
+      "present": true,
+      "tree_sha256": "6e2de9b3630176fd75b0981935e9ff2a1f545b2b5b3c3ee7fd5a8f368edd05fb",
+      "file_count": 341,
+      "bytes": 158527968,
+      "version": {
+        "present": false
+      },
+      "git": {
+        "repository": false,
+        "commit": "unknown",
+        "reason": "no .git directory in supplied tree"
+      }
+    }
+  },
+  "claims": {
+    "upstream_commit": "unknown for all trees: no VCS metadata was supplied",
+    "build_performed": false,
+    "runtime_measured": false
+  }
+}

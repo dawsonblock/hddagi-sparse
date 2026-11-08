@@ -1,0 +1,65 @@
+group,name,kind,source,format,width,height,depth,layers,bytes,mib,note
+occupancy,voxel_bits_tex,texture_3d,gi.cpp:411-420,R32G32_UINT,32,96,32,1,786432,0.75,4x4 block bitfield; dense source of truth
+occupancy,voxel_region_tex,texture_3d,gi.cpp:445-455,R8_UINT,16,48,16,1,12288,0.0117,8x8x8 region occupancy
+occupancy,region_version_data,texture_3d,gi.cpp:424-432,R16_UINT,16,48,16,1,24576,0.0234,R16 wraps; cannot serve as page generation
+payload,voxel_light_tex_data,texture_3d,gi.cpp:460-466,R32_UINT,128,384,128,1,25165824,24.0,packed radiance; E5B9G9R9 shared view added at gi.cpp:468-470
+payload,voxel_light_tex,texture_3d,gi.cpp:468-470,E5B9G9R9_UFLOAT_PACK32,128,384,128,1,0,0.0,shared view; no additional backing store
+payload,voxel_light_neighbour_data,texture_3d,gi.cpp:473-478,R32_UINT,128,384,128,1,25165824,24.0,
+payload,voxel_disocclusion_tex,texture_3d,gi.cpp:435-441,R8_UINT,128,384,128,1,6291456,6.0,
+surface_render,render_albedo,texture_3d,gi.cpp:481-488,R16_UINT,64,192,384,1,9437184,9.0,anisotropic x6
+surface_render,render_emission,texture_3d,gi.cpp:491-497,R32_UINT,64,192,64,1,3145728,3.0,
+surface_render,render_emission_aniso,texture_3d,gi.cpp:492-498,R32_UINT,64,192,64,1,3145728,3.0,
+surface_render,render_aniso_normals,texture_3d,gi.cpp:501-505,R32_UINT,128,384,128,1,25165824,24.0,
+light_process,light_process_buffer_render,buffer,gi.cpp:510,n/a,,,,,8388608,8.0,solid_cell_count=524288 at ratio 0.5
+light_process,light_process_dispatch_buffer_render,buffer,gi.cpp:511,n/a,,,,,16,0.0,
+light_process,cascades[0].light_process_buffer,buffer,gi.cpp:620,n/a,,,,,8388608,8.0,
+light_process,cascades[0].light_process_dispatch_buffer,buffer,gi.cpp:621,n/a,,,,,16,0.0,
+light_process,cascades[0].light_process_dispatch_buffer_copy,buffer,gi.cpp:622,n/a,,,,,16,0.0,
+light_process,cascades[0].light_position_bufer,buffer,gi.cpp:624,n/a,,,,,114688,0.1094,
+light_process,cascades[1].light_process_buffer,buffer,gi.cpp:620,n/a,,,,,8388608,8.0,
+light_process,cascades[1].light_process_dispatch_buffer,buffer,gi.cpp:621,n/a,,,,,16,0.0,
+light_process,cascades[1].light_process_dispatch_buffer_copy,buffer,gi.cpp:622,n/a,,,,,16,0.0,
+light_process,cascades[1].light_position_bufer,buffer,gi.cpp:624,n/a,,,,,114688,0.1094,
+light_process,cascades[2].light_process_buffer,buffer,gi.cpp:620,n/a,,,,,8388608,8.0,
+light_process,cascades[2].light_process_dispatch_buffer,buffer,gi.cpp:621,n/a,,,,,16,0.0,
+light_process,cascades[2].light_process_dispatch_buffer_copy,buffer,gi.cpp:622,n/a,,,,,16,0.0,
+light_process,cascades[2].light_position_bufer,buffer,gi.cpp:624,n/a,,,,,114688,0.1094,
+light_process,cascades[3].light_process_buffer,buffer,gi.cpp:620,n/a,,,,,8388608,8.0,
+light_process,cascades[3].light_process_dispatch_buffer,buffer,gi.cpp:621,n/a,,,,,16,0.0,
+light_process,cascades[3].light_process_dispatch_buffer_copy,buffer,gi.cpp:622,n/a,,,,,16,0.0,
+light_process,cascades[3].light_position_bufer,buffer,gi.cpp:624,n/a,,,,,114688,0.1094,
+light_process,cascades[4].light_process_buffer,buffer,gi.cpp:620,n/a,,,,,8388608,8.0,
+light_process,cascades[4].light_process_dispatch_buffer,buffer,gi.cpp:621,n/a,,,,,16,0.0,
+light_process,cascades[4].light_process_dispatch_buffer_copy,buffer,gi.cpp:622,n/a,,,,,16,0.0,
+light_process,cascades[4].light_position_bufer,buffer,gi.cpp:624,n/a,,,,,114688,0.1094,
+light_process,cascades[5].light_process_buffer,buffer,gi.cpp:620,n/a,,,,,8388608,8.0,
+light_process,cascades[5].light_process_dispatch_buffer,buffer,gi.cpp:621,n/a,,,,,16,0.0,
+light_process,cascades[5].light_process_dispatch_buffer_copy,buffer,gi.cpp:622,n/a,,,,,16,0.0,
+light_process,cascades[5].light_position_bufer,buffer,gi.cpp:624,n/a,,,,,114688,0.1094,
+uniform,cascades_ubo,buffer,gi.cpp:513,n/a,,,,,384,0.0004,
+lightprobe,lightprobe_specular_data,texture_2d_array,gi.cpp:519-532,R32_UINT,119,1071,1,6,3058776,2.9171,2D array; one layer per cascade
+lightprobe,lightprobe_diffuse_data,texture_2d_array,gi.cpp:519-532,R32_UINT,119,1071,1,6,3058776,2.9171,2D array; one layer per cascade
+lightprobe,lightprobe_diffuse_filter_data,texture_2d_array,gi.cpp:519-532,R32_UINT,119,1071,1,6,3058776,2.9171,2D array; one layer per cascade
+lightprobe,lightprobe_specular_tex,texture_2d_array,gi.cpp:534-538,E5B9G9R9_UFLOAT_PACK32,119,1071,1,6,0,0.0,
+lightprobe,lightprobe_diffuse_tex,texture_2d_array,gi.cpp:534-538,E5B9G9R9_UFLOAT_PACK32,119,1071,1,6,0,0.0,
+lightprobe,lightprobe_diffuse_filter_tex,texture_2d_array,gi.cpp:534-538,E5B9G9R9_UFLOAT_PACK32,119,1071,1,6,0,0.0,
+lightprobe,lightprobe_hit_cache_data,texture_2d_array,gi.cpp:540-546,R32_UINT,85,765,1,36,9363600,8.9298,layers = cascades * frames_to_converge
+lightprobe,lightprobe_hit_cache_version_data,texture_2d_array,gi.cpp:548-549,R16_UINT,85,765,1,36,4681800,4.4649,
+lightprobe,lightprobe_moving_average_history,texture_2d_array,gi.cpp:551-554,R32_UINT,85,765,1,36,9363600,8.9298,
+lightprobe,lightprobe_moving_average,texture_2d_array,gi.cpp:556-559,R32_UINT,255,765,1,6,4681800,4.4649,width *= 3 because there is no RGB32UI
+lightprobe,lightprobe_ambient_tex,texture_2d_array,gi.cpp:562-567,R16G16B16A16_SFLOAT,17,153,1,6,124848,0.1191,
+lightprobe,lightprobe_neighbour_visibility_map,texture_2d_array,gi.cpp:569-577,R32_UINT,17,153,1,6,62424,0.0595,
+lightprobe,lightprobe_geometry_proximity_map,texture_2d_array,gi.cpp:579-582,R8_UNORM,17,153,1,6,15606,0.0149,
+lightprobe,lightprobe_camera_visibility_map,texture_2d_array,gi.cpp:583,R8_UNORM,17,153,1,6,15606,0.0149,
+lightprobe,lightprobe_process_frame,texture_2d_array,gi.cpp:591-593,R32_UINT,17,153,1,6,62424,0.0595,
+lightprobe,lightprobe_camera_buffers,buffer,gi.cpp:585-589,n/a,,,,,5376,0.0051,4 uniform buffers per cascade
+occlusion,occlusion_data[0],texture_3d,gi.cpp:598-610,R16_UINT,130,396,130,1,13384800,12.7647,+2 border on every axis for blending
+occlusion,occlusion_data[1],texture_3d,gi.cpp:598-610,R16_UINT,130,396,130,1,13384800,12.7647,+2 border on every axis for blending
+screen_probe,screen_probe_surface,texture_3d,gi_hddagi_screen_probes.cpp:540,R32G32B32A32_UINT,240,135,1,1,518400,0.4944,
+screen_probe,screen_probe_resolved_radiance,texture_3d,gi_hddagi_screen_probes.cpp:541,R16G16B16A16_SFLOAT,1920,1080,1,1,16588800,15.8203,
+screen_probe,screen_probe_raw_radiance,texture_3d,gi_hddagi_screen_probes.cpp:569,R16G16B16A16_SFLOAT,240,135,1,1,259200,0.2472,
+screen_probe_specular,specular_raw,texture_3d,gi_hddagi_screen_probes.cpp:638-642,R16G16B16A16_SFLOAT,1920,1080,1,1,16588800,15.8203,
+screen_probe_specular,specular_normal_roughness,texture_3d,gi_hddagi_screen_probes.cpp:638-642,R8G8B8A8_UNORM,1920,1080,1,1,8294400,7.9102,
+screen_probe_specular,specular_view_z,texture_3d,gi_hddagi_screen_probes.cpp:638-642,R32_SFLOAT,1920,1080,1,1,8294400,7.9102,
+screen_probe_specular,specular_motion,texture_3d,gi_hddagi_screen_probes.cpp:638-642,R16G16B16A16_SFLOAT,1920,1080,1,1,16588800,15.8203,
+screen_probe_specular,specular_denoised,texture_3d,gi_hddagi_screen_probes.cpp:638-642,R16G16B16A16_SFLOAT,1920,1080,1,1,16588800,15.8203,

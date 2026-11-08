@@ -1,0 +1,63 @@
+{
+  "method": "source_derived",
+  "scope": "every declaration and access of the per-voxel world payloads in servers/rendering/renderer_rd/shaders/environment/hddagi_*.glsl",
+  "payloads": {
+    "light": "voxel_light_tex_data (R32_UINT, E5B9G9R9 shared view)",
+    "neighbour": "voxel_light_neighbour_data (R32_UINT)",
+    "disocclusion": "voxel_disocclusion_tex (R8_UINT)",
+    "albedo": "voxel_albedo_data (R16_UINT) - optional multibounce payload, NOT in the RFC's three-field group"
+  },
+  "findings": {
+    "filtered_reads": 0,
+    "exact_texel_reads": 13,
+    "conclusion": "Every radiance/metadata read is texelFetch or imageLoad. The sampler named linear_sampler is bound but texelFetch ignores filtering. v1 needs no halo, confirming RFC section 3.",
+    "binding_collision_confirmed": "hddagi_preprocess.glsl declares light_tex at binding 12 (line 40) and again at binding 1 (line 96) in a different mode block. A binding that is free in one variant is not free in all variants."
+  },
+  "sites": [
+    { "id": "integrate.light.read", "file": "hddagi_integrate.glsl", "line": 572, "payload": "light", "access": "read", "api": "texelFetch", "exact_texel": true, "function": "main", "mode": "all integrate modes", "binding": 3, "note": "spos.y += hit_cascade * grid_size.y, confirms cascade stacking in Y" },
+    { "id": "debug.light.decl", "file": "hddagi_debug.glsl", "line": 17, "payload": "light", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "debug", "binding": 3 },
+    { "id": "debug.neighbour.decl", "file": "hddagi_debug.glsl", "line": 25, "payload": "neighbour", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "debug", "binding": 10 },
+    { "id": "integrate.light.decl", "file": "hddagi_integrate.glsl", "line": 35, "payload": "light", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "all integrate modes", "binding": 3 },
+    { "id": "debug.light.read", "file": "hddagi_debug.glsl", "line": 365, "payload": "light", "access": "read", "api": "texelFetch", "exact_texel": true, "function": "main", "mode": "debug", "binding": 3 },
+    { "id": "debug.neighbour.read", "file": "hddagi_debug.glsl", "line": 370, "payload": "neighbour", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "main", "mode": "debug", "binding": 10 },
+    { "id": "debug.light.neighbour.read", "file": "hddagi_debug.glsl", "line": 386, "payload": "light", "access": "read", "api": "texelFetch", "exact_texel": true, "function": "main", "mode": "debug", "binding": 3 },
+
+    { "id": "screenprobe.neighbour.decl", "file": "hddagi_screen_probe.glsl", "line": 200, "payload": "neighbour", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "screen probe", "binding": 6 },
+    { "id": "screenprobe.light.decl", "file": "hddagi_screen_probe.glsl", "line": 198, "payload": "light", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "screen probe", "binding": 4 },
+    { "id": "screenprobe.disocclusion.decl", "file": "hddagi_screen_probe.glsl", "line": 218, "payload": "disocclusion", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "screen probe", "binding": 8 },
+    { "id": "screenprobe.albedo.decl", "file": "hddagi_screen_probe.glsl", "line": 249, "payload": "albedo", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "screen probe", "binding": 10 },
+    { "id": "screenprobe.neighbour.helper.def", "file": "hddagi_screen_probe.glsl", "line": 1577, "payload": "neighbour", "access": "declare", "api": "helper_definition", "exact_texel": null, "function": "load_voxel_neighbours", "mode": "screen probe", "binding": 6 },
+    { "id": "screenprobe.disocclusion.helper.def", "file": "hddagi_screen_probe.glsl", "line": 1581, "payload": "disocclusion", "access": "declare", "api": "helper_definition", "exact_texel": null, "function": "load_voxel_disocclusion", "mode": "screen probe", "binding": 8 },
+    { "id": "screenprobe.neighbour.helper", "file": "hddagi_screen_probe.glsl", "line": 1578, "payload": "neighbour", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "load_voxel_neighbours", "mode": "screen probe", "binding": 6 },
+    { "id": "screenprobe.disocclusion.helper", "file": "hddagi_screen_probe.glsl", "line": 1582, "payload": "disocclusion", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "load_voxel_disocclusion", "mode": "screen probe", "binding": 8 },
+    { "id": "screenprobe.endpoint.neighbour", "file": "hddagi_screen_probe.glsl", "line": 1816, "payload": "neighbour", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "sample_endpoint_light", "mode": "trace variants", "binding": 6, "note": "valid-bit metadata drives endpoint acceptance" },
+    { "id": "screenprobe.endpoint.disocclusion", "file": "hddagi_screen_probe.glsl", "line": 1821, "payload": "disocclusion", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "sample_endpoint_light", "mode": "trace variants", "binding": 8, "note": "6-direction aniso mask" },
+    { "id": "screenprobe.endpoint.light", "file": "hddagi_screen_probe.glsl", "line": 1849, "payload": "light", "access": "read", "api": "texelFetch", "exact_texel": true, "function": "sample_endpoint_light", "mode": "trace variants", "binding": 4 },
+    { "id": "screenprobe.irradiancecache.light", "file": "hddagi_screen_probe.glsl", "line": 2150, "payload": "light", "access": "read", "api": "texelFetch", "exact_texel": true, "function": "trace_irradiance_cache_segment", "mode": "MODE_IRRADIANCE_CACHE_QUERY", "binding": 4 },
+    { "id": "screenprobe.irradiancecache.albedo", "file": "hddagi_screen_probe.glsl", "line": 2153, "payload": "albedo", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "trace_irradiance_cache_segment", "mode": "MODE_IRRADIANCE_CACHE_QUERY", "binding": 10, "note": "requires voxel_albedo_data; not in the RFC's migratable group" },
+    { "id": "screenprobe.irradiancecache.neighbour", "file": "hddagi_screen_probe.glsl", "line": 2151, "payload": "neighbour", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "trace_irradiance_cache_segment", "mode": "MODE_IRRADIANCE_CACHE_QUERY", "binding": 6 },
+    { "id": "screenprobe.irradiancecache.light.neighbour", "file": "hddagi_screen_probe.glsl", "line": 2176, "payload": "light", "access": "read", "api": "texelFetch", "exact_texel": true, "function": "trace_irradiance_cache_segment", "mode": "MODE_IRRADIANCE_CACHE_QUERY", "binding": 4 },
+    { "id": "screenprobe.multibounce.albedo", "file": "hddagi_screen_probe.glsl", "line": 2035, "payload": "albedo", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "main", "mode": "multibounce update", "binding": 10 },
+    { "id": "screenprobe.trace.disocclusion", "file": "hddagi_screen_probe.glsl", "line": 2416, "payload": "disocclusion", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "trace_hddagi_sample", "mode": "MODE_TRACE", "binding": 8 },
+    { "id": "screenprobe.trace.disocclusion.retry", "file": "hddagi_screen_probe.glsl", "line": 2431, "payload": "disocclusion", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "trace_hddagi_sample", "mode": "MODE_TRACE", "binding": 8 },
+    { "id": "screenprobe.trace.neighbour", "file": "hddagi_screen_probe.glsl", "line": 2489, "payload": "neighbour", "access": "read", "api": "imageLoad", "exact_texel": true, "function": "trace_hddagi_sample", "mode": "MODE_TRACE", "binding": 6 },
+    { "id": "screenprobe.trace.light", "file": "hddagi_screen_probe.glsl", "line": 2488, "payload": "light", "access": "read", "api": "texelFetch", "exact_texel": true, "function": "trace_hddagi_sample", "mode": "MODE_TRACE", "binding": 4 },
+    { "id": "screenprobe.trace.light.neighbour", "file": "hddagi_screen_probe.glsl", "line": 2509, "payload": "light", "access": "read", "api": "texelFetch", "exact_texel": true, "function": "trace_hddagi_sample", "mode": "MODE_TRACE", "binding": 4 },
+
+    { "id": "preprocess.regionstore.light.decl", "file": "hddagi_preprocess.glsl", "line": 96, "payload": "light", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "MODE_REGION_STORE", "binding": 1, "note": "same name, different binding than line 40" },
+    { "id": "preprocess.lightstore.disocclusion.decl", "file": "hddagi_preprocess.glsl", "line": 37, "payload": "disocclusion", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "MODE_LIGHT_STORE", "binding": 10 },
+    { "id": "preprocess.lightstore.neighbour.decl", "file": "hddagi_preprocess.glsl", "line": 39, "payload": "neighbour", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "MODE_LIGHT_STORE", "binding": 11 },
+    { "id": "preprocess.lightstore.light.decl", "file": "hddagi_preprocess.glsl", "line": 40, "payload": "light", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "MODE_LIGHT_STORE", "binding": 12 },
+    { "id": "preprocess.lightscroll.light.zero", "file": "hddagi_preprocess.glsl", "line": 415, "payload": "light", "access": "write", "api": "imageStore", "exact_texel": true, "function": "main", "mode": "MODE_LIGHT_SCROLL", "binding": 12, "note": "zeros stale light in newly exposed cells; page retirement is part of scroll semantics" },
+    { "id": "preprocess.lightstore.disocclusion.write", "file": "hddagi_preprocess.glsl", "line": 592, "payload": "disocclusion", "access": "write", "api": "imageStore", "exact_texel": true, "function": "main", "mode": "MODE_LIGHT_STORE", "binding": 10 },
+    { "id": "preprocess.lightstore.neighbour.write", "file": "hddagi_preprocess.glsl", "line": 657, "payload": "neighbour", "access": "write", "api": "imageStore", "exact_texel": true, "function": "main", "mode": "MODE_LIGHT_STORE", "binding": 11 },
+    { "id": "preprocess.lightstore.light.clear", "file": "hddagi_preprocess.glsl", "line": 659, "payload": "light", "access": "write", "api": "imageStore", "exact_texel": true, "function": "main", "mode": "MODE_LIGHT_STORE", "binding": 12 },
+    { "id": "preprocess.lightstore.neighbour.metadata.write", "file": "hddagi_preprocess.glsl", "line": 744, "payload": "neighbour", "access": "write", "api": "imageStore", "exact_texel": true, "function": "main", "mode": "MODE_LIGHT_STORE", "binding": 11, "note": "writes surface-adjacent cells, including empty voxels - the residency classifier must cover these" },
+    { "id": "preprocess.lightstore.light.metadata.clear", "file": "hddagi_preprocess.glsl", "line": 766, "payload": "light", "access": "write", "api": "imageStore", "exact_texel": true, "function": "main", "mode": "MODE_LIGHT_STORE", "binding": 12 },
+
+    { "id": "directlight.light.decl", "file": "hddagi_direct_light.glsl", "line": 40, "payload": "light", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "direct light", "binding": 6 },
+    { "id": "directlight.albedo.decl", "file": "hddagi_direct_light.glsl", "line": 90, "payload": "albedo", "access": "declare", "api": "declaration", "exact_texel": null, "function": "-", "mode": "direct light", "binding": 10 },
+    { "id": "directlight.light.write", "file": "hddagi_direct_light.glsl", "line": 594, "payload": "light", "access": "write", "api": "imageStore", "exact_texel": true, "function": "main", "mode": "direct light", "binding": 6, "note": "rgbe_encode output; atlas writer must reproduce this exact packed uint" },
+    { "id": "directlight.albedo.write", "file": "hddagi_direct_light.glsl", "line": 596, "payload": "albedo", "access": "write", "api": "imageStore", "exact_texel": true, "function": "main", "mode": "direct light", "binding": 10 }
+  ]
+}

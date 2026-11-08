@@ -1,0 +1,5 @@
+source tree: godot-dynamic_gi_2
+version.py: 4.8.0-dev
+tree_sha256: f3424c5813f6139011e6b139c38007576bf58333ae1bb093ddb16fd00b9bde8a
+git commit: unknown (no VCS metadata in supplied tree)
+archive_sha256: 5cfbab8cc4709878306b74e2827c8a1f8559b357227f89cc32726229ebae1948

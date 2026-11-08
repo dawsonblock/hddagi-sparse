@@ -1,0 +1,984 @@
+{
+  "scenario": {
+    "cascades": 6,
+    "cascade_format": "16x8x16"
+  },
+  "assumptions": {
+    "brick_edge": 8,
+    "page_entry_bytes": 16,
+    "brick_meta_bytes": 32,
+    "max_atlas_slots_per_axis": 2048,
+    "dense_bytes_removed": "declared dense sizes; best case, no driver slack",
+    "capacity_is_cost": "allocated pool capacity, not momentary occupancy"
+  },
+  "sweep": [
+    {
+      "mode": "light_only",
+      "split_pools": false,
+      "residency": 0.1,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 25165824,
+      "dense_mib": 24.0,
+      "atlas_bytes": 2516992,
+      "atlas_mib": 2.4,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 242644,
+      "overhead_mib": 0.231,
+      "sparse_bytes": 2759636,
+      "sparse_mib": 2.632,
+      "net_saved_bytes": 22406188,
+      "net_saved_mib": 21.368,
+      "saving_ratio": 0.8903,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 1229,
+          "atlas_slots": 1229,
+          "atlas_dims": [
+            8,
+            9832,
+            8
+          ],
+          "atlas_bytes": 2516992
+        }
+      ],
+      "break_even_residency": 0.9749
+    },
+    {
+      "mode": "light_only",
+      "split_pools": false,
+      "residency": 0.25,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 25165824,
+      "dense_mib": 24.0,
+      "atlas_bytes": 6291456,
+      "atlas_mib": 6.0,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 308992,
+      "overhead_mib": 0.295,
+      "sparse_bytes": 6600448,
+      "sparse_mib": 6.295,
+      "net_saved_bytes": 18565376,
+      "net_saved_mib": 17.705,
+      "saving_ratio": 0.7377,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 3072,
+          "atlas_slots": 3072,
+          "atlas_dims": [
+            8,
+            512,
+            384
+          ],
+          "atlas_bytes": 6291456
+        }
+      ],
+      "break_even_residency": 0.9749
+    },
+    {
+      "mode": "light_only",
+      "split_pools": false,
+      "residency": 0.33,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 25165824,
+      "dense_mib": 24.0,
+      "atlas_bytes": 8306688,
+      "atlas_mib": 7.922,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 344416,
+      "overhead_mib": 0.328,
+      "sparse_bytes": 8651104,
+      "sparse_mib": 8.25,
+      "net_saved_bytes": 16514720,
+      "net_saved_mib": 15.75,
+      "saving_ratio": 0.6562,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 4056,
+          "atlas_slots": 4056,
+          "atlas_dims": [
+            8,
+            624,
+            416
+          ],
+          "atlas_bytes": 8306688
+        }
+      ],
+      "break_even_residency": 0.9749
+    },
+    {
+      "mode": "light_only",
+      "split_pools": false,
+      "residency": 0.5,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 25165824,
+      "dense_mib": 24.0,
+      "atlas_bytes": 12582912,
+      "atlas_mib": 12.0,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 419584,
+      "overhead_mib": 0.4,
+      "sparse_bytes": 13002496,
+      "sparse_mib": 12.4,
+      "net_saved_bytes": 12163328,
+      "net_saved_mib": 11.6,
+      "saving_ratio": 0.4833,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 6144,
+          "atlas_slots": 6144,
+          "atlas_dims": [
+            8,
+            768,
+            512
+          ],
+          "atlas_bytes": 12582912
+        }
+      ],
+      "break_even_residency": 0.9749
+    },
+    {
+      "mode": "light_only",
+      "split_pools": false,
+      "residency": 0.67,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 25165824,
+      "dense_mib": 24.0,
+      "atlas_bytes": 16863232,
+      "atlas_mib": 16.082,
+      "atlas_slack_slots": 1,
+      "overhead_bytes": 494788,
+      "overhead_mib": 0.472,
+      "sparse_bytes": 17358020,
+      "sparse_mib": 16.554,
+      "net_saved_bytes": 7807804,
+      "net_saved_mib": 7.446,
+      "saving_ratio": 0.3103,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 8233,
+          "atlas_slots": 8234,
+          "atlas_dims": [
+            16,
+            1432,
+            184
+          ],
+          "atlas_bytes": 16863232
+        }
+      ],
+      "break_even_residency": 0.9749
+    },
+    {
+      "mode": "light_only",
+      "split_pools": false,
+      "residency": 0.75,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 25165824,
+      "dense_mib": 24.0,
+      "atlas_bytes": 18874368,
+      "atlas_mib": 18.0,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 530176,
+      "overhead_mib": 0.506,
+      "sparse_bytes": 19404544,
+      "sparse_mib": 18.506,
+      "net_saved_bytes": 5761280,
+      "net_saved_mib": 5.494,
+      "saving_ratio": 0.2289,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 9216,
+          "atlas_slots": 9216,
+          "atlas_dims": [
+            8,
+            768,
+            768
+          ],
+          "atlas_bytes": 18874368
+        }
+      ],
+      "break_even_residency": 0.9749
+    },
+    {
+      "mode": "light_only",
+      "split_pools": false,
+      "residency": 0.9,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 25165824,
+      "dense_mib": 24.0,
+      "atlas_bytes": 22650880,
+      "atlas_mib": 21.602,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 596560,
+      "overhead_mib": 0.569,
+      "sparse_bytes": 23247440,
+      "sparse_mib": 22.17,
+      "net_saved_bytes": 1918384,
+      "net_saved_mib": 1.83,
+      "saving_ratio": 0.0762,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 11060,
+          "atlas_slots": 11060,
+          "atlas_dims": [
+            8,
+            1120,
+            632
+          ],
+          "atlas_bytes": 22650880
+        }
+      ],
+      "break_even_residency": 0.9749
+    },
+    {
+      "mode": "light_only",
+      "split_pools": false,
+      "residency": 1.0,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 25165824,
+      "dense_mib": 24.0,
+      "atlas_bytes": 25165824,
+      "atlas_mib": 24.0,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 640768,
+      "overhead_mib": 0.611,
+      "sparse_bytes": 25806592,
+      "sparse_mib": 24.611,
+      "net_saved_bytes": -640768,
+      "net_saved_mib": -0.611,
+      "saving_ratio": -0.0255,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 12288,
+          "atlas_slots": 12288,
+          "atlas_dims": [
+            8,
+            1024,
+            768
+          ],
+          "atlas_bytes": 25165824
+        }
+      ],
+      "break_even_residency": 0.9749
+    },
+    {
+      "mode": "three_field",
+      "split_pools": false,
+      "residency": 0.1,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 5663232,
+      "atlas_mib": 5.401,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 242644,
+      "overhead_mib": 0.231,
+      "sparse_bytes": 5905876,
+      "sparse_mib": 5.632,
+      "net_saved_bytes": 50717228,
+      "net_saved_mib": 48.368,
+      "saving_ratio": 0.8957,
+      "pools": [
+        {
+          "field": "light+neighbour+disocclusion",
+          "capacity": 1229,
+          "atlas_slots": 1229,
+          "atlas_dims": [
+            8,
+            9832,
+            8
+          ],
+          "atlas_bytes": 5663232
+        }
+      ],
+      "break_even_residency": 0.9888
+    },
+    {
+      "mode": "three_field",
+      "split_pools": false,
+      "residency": 0.25,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 14155776,
+      "atlas_mib": 13.5,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 308992,
+      "overhead_mib": 0.295,
+      "sparse_bytes": 14464768,
+      "sparse_mib": 13.795,
+      "net_saved_bytes": 42158336,
+      "net_saved_mib": 40.205,
+      "saving_ratio": 0.7445,
+      "pools": [
+        {
+          "field": "light+neighbour+disocclusion",
+          "capacity": 3072,
+          "atlas_slots": 3072,
+          "atlas_dims": [
+            8,
+            512,
+            384
+          ],
+          "atlas_bytes": 14155776
+        }
+      ],
+      "break_even_residency": 0.9888
+    },
+    {
+      "mode": "three_field",
+      "split_pools": false,
+      "residency": 0.33,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 18690048,
+      "atlas_mib": 17.824,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 344416,
+      "overhead_mib": 0.328,
+      "sparse_bytes": 19034464,
+      "sparse_mib": 18.153,
+      "net_saved_bytes": 37588640,
+      "net_saved_mib": 35.847,
+      "saving_ratio": 0.6638,
+      "pools": [
+        {
+          "field": "light+neighbour+disocclusion",
+          "capacity": 4056,
+          "atlas_slots": 4056,
+          "atlas_dims": [
+            8,
+            624,
+            416
+          ],
+          "atlas_bytes": 18690048
+        }
+      ],
+      "break_even_residency": 0.9888
+    },
+    {
+      "mode": "three_field",
+      "split_pools": false,
+      "residency": 0.5,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 28311552,
+      "atlas_mib": 27.0,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 419584,
+      "overhead_mib": 0.4,
+      "sparse_bytes": 28731136,
+      "sparse_mib": 27.4,
+      "net_saved_bytes": 27891968,
+      "net_saved_mib": 26.6,
+      "saving_ratio": 0.4926,
+      "pools": [
+        {
+          "field": "light+neighbour+disocclusion",
+          "capacity": 6144,
+          "atlas_slots": 6144,
+          "atlas_dims": [
+            8,
+            768,
+            512
+          ],
+          "atlas_bytes": 28311552
+        }
+      ],
+      "break_even_residency": 0.9888
+    },
+    {
+      "mode": "three_field",
+      "split_pools": false,
+      "residency": 0.67,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 37942272,
+      "atlas_mib": 36.185,
+      "atlas_slack_slots": 1,
+      "overhead_bytes": 494788,
+      "overhead_mib": 0.472,
+      "sparse_bytes": 38437060,
+      "sparse_mib": 36.656,
+      "net_saved_bytes": 18186044,
+      "net_saved_mib": 17.344,
+      "saving_ratio": 0.3212,
+      "pools": [
+        {
+          "field": "light+neighbour+disocclusion",
+          "capacity": 8233,
+          "atlas_slots": 8234,
+          "atlas_dims": [
+            16,
+            1432,
+            184
+          ],
+          "atlas_bytes": 37942272
+        }
+      ],
+      "break_even_residency": 0.9888
+    },
+    {
+      "mode": "three_field",
+      "split_pools": false,
+      "residency": 0.75,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 42467328,
+      "atlas_mib": 40.5,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 530176,
+      "overhead_mib": 0.506,
+      "sparse_bytes": 42997504,
+      "sparse_mib": 41.006,
+      "net_saved_bytes": 13625600,
+      "net_saved_mib": 12.994,
+      "saving_ratio": 0.2406,
+      "pools": [
+        {
+          "field": "light+neighbour+disocclusion",
+          "capacity": 9216,
+          "atlas_slots": 9216,
+          "atlas_dims": [
+            8,
+            768,
+            768
+          ],
+          "atlas_bytes": 42467328
+        }
+      ],
+      "break_even_residency": 0.9888
+    },
+    {
+      "mode": "three_field",
+      "split_pools": false,
+      "residency": 0.9,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 50964480,
+      "atlas_mib": 48.604,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 596560,
+      "overhead_mib": 0.569,
+      "sparse_bytes": 51561040,
+      "sparse_mib": 49.172,
+      "net_saved_bytes": 5062064,
+      "net_saved_mib": 4.828,
+      "saving_ratio": 0.0894,
+      "pools": [
+        {
+          "field": "light+neighbour+disocclusion",
+          "capacity": 11060,
+          "atlas_slots": 11060,
+          "atlas_dims": [
+            8,
+            1120,
+            632
+          ],
+          "atlas_bytes": 50964480
+        }
+      ],
+      "break_even_residency": 0.9888
+    },
+    {
+      "mode": "three_field",
+      "split_pools": false,
+      "residency": 1.0,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 56623104,
+      "atlas_mib": 54.0,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 640768,
+      "overhead_mib": 0.611,
+      "sparse_bytes": 57263872,
+      "sparse_mib": 54.611,
+      "net_saved_bytes": -640768,
+      "net_saved_mib": -0.611,
+      "saving_ratio": -0.0113,
+      "pools": [
+        {
+          "field": "light+neighbour+disocclusion",
+          "capacity": 12288,
+          "atlas_slots": 12288,
+          "atlas_dims": [
+            8,
+            1024,
+            768
+          ],
+          "atlas_bytes": 56623104
+        }
+      ],
+      "break_even_residency": 0.9888
+    },
+    {
+      "mode": "three_field",
+      "split_pools": true,
+      "residency": 0.1,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 5663232,
+      "atlas_mib": 5.401,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 756916,
+      "overhead_mib": 0.722,
+      "sparse_bytes": 6420148,
+      "sparse_mib": 6.123,
+      "net_saved_bytes": 50202956,
+      "net_saved_mib": 47.877,
+      "saving_ratio": 0.8866,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 1229,
+          "atlas_slots": 1229,
+          "atlas_dims": [
+            8,
+            9832,
+            8
+          ],
+          "atlas_bytes": 2516992
+        },
+        {
+          "field": "neighbour",
+          "capacity": 1229,
+          "atlas_slots": 1229,
+          "atlas_dims": [
+            8,
+            9832,
+            8
+          ],
+          "atlas_bytes": 2516992
+        },
+        {
+          "field": "disocclusion",
+          "capacity": 1229,
+          "atlas_slots": 1229,
+          "atlas_dims": [
+            8,
+            9832,
+            8
+          ],
+          "atlas_bytes": 629248
+        }
+      ],
+      "break_even_residency": 0.9619
+    },
+    {
+      "mode": "three_field",
+      "split_pools": true,
+      "residency": 0.25,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 14155776,
+      "atlas_mib": 13.5,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 1000192,
+      "overhead_mib": 0.954,
+      "sparse_bytes": 15155968,
+      "sparse_mib": 14.454,
+      "net_saved_bytes": 41467136,
+      "net_saved_mib": 39.546,
+      "saving_ratio": 0.7323,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 3072,
+          "atlas_slots": 3072,
+          "atlas_dims": [
+            8,
+            512,
+            384
+          ],
+          "atlas_bytes": 6291456
+        },
+        {
+          "field": "neighbour",
+          "capacity": 3072,
+          "atlas_slots": 3072,
+          "atlas_dims": [
+            8,
+            512,
+            384
+          ],
+          "atlas_bytes": 6291456
+        },
+        {
+          "field": "disocclusion",
+          "capacity": 3072,
+          "atlas_slots": 3072,
+          "atlas_dims": [
+            8,
+            512,
+            384
+          ],
+          "atlas_bytes": 1572864
+        }
+      ],
+      "break_even_residency": 0.9619
+    },
+    {
+      "mode": "three_field",
+      "split_pools": true,
+      "residency": 0.33,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 18690048,
+      "atlas_mib": 17.824,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 1130080,
+      "overhead_mib": 1.078,
+      "sparse_bytes": 19820128,
+      "sparse_mib": 18.902,
+      "net_saved_bytes": 36802976,
+      "net_saved_mib": 35.098,
+      "saving_ratio": 0.65,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 4056,
+          "atlas_slots": 4056,
+          "atlas_dims": [
+            8,
+            624,
+            416
+          ],
+          "atlas_bytes": 8306688
+        },
+        {
+          "field": "neighbour",
+          "capacity": 4056,
+          "atlas_slots": 4056,
+          "atlas_dims": [
+            8,
+            624,
+            416
+          ],
+          "atlas_bytes": 8306688
+        },
+        {
+          "field": "disocclusion",
+          "capacity": 4056,
+          "atlas_slots": 4056,
+          "atlas_dims": [
+            8,
+            624,
+            416
+          ],
+          "atlas_bytes": 2076672
+        }
+      ],
+      "break_even_residency": 0.9619
+    },
+    {
+      "mode": "three_field",
+      "split_pools": true,
+      "residency": 0.5,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 28311552,
+      "atlas_mib": 27.0,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 1405696,
+      "overhead_mib": 1.341,
+      "sparse_bytes": 29717248,
+      "sparse_mib": 28.341,
+      "net_saved_bytes": 26905856,
+      "net_saved_mib": 25.659,
+      "saving_ratio": 0.4752,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 6144,
+          "atlas_slots": 6144,
+          "atlas_dims": [
+            8,
+            768,
+            512
+          ],
+          "atlas_bytes": 12582912
+        },
+        {
+          "field": "neighbour",
+          "capacity": 6144,
+          "atlas_slots": 6144,
+          "atlas_dims": [
+            8,
+            768,
+            512
+          ],
+          "atlas_bytes": 12582912
+        },
+        {
+          "field": "disocclusion",
+          "capacity": 6144,
+          "atlas_slots": 6144,
+          "atlas_dims": [
+            8,
+            768,
+            512
+          ],
+          "atlas_bytes": 3145728
+        }
+      ],
+      "break_even_residency": 0.9619
+    },
+    {
+      "mode": "three_field",
+      "split_pools": true,
+      "residency": 0.67,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 37942272,
+      "atlas_mib": 36.185,
+      "atlas_slack_slots": 3,
+      "overhead_bytes": 1681444,
+      "overhead_mib": 1.604,
+      "sparse_bytes": 39623716,
+      "sparse_mib": 37.788,
+      "net_saved_bytes": 16999388,
+      "net_saved_mib": 16.212,
+      "saving_ratio": 0.3002,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 8233,
+          "atlas_slots": 8234,
+          "atlas_dims": [
+            16,
+            1432,
+            184
+          ],
+          "atlas_bytes": 16863232
+        },
+        {
+          "field": "neighbour",
+          "capacity": 8233,
+          "atlas_slots": 8234,
+          "atlas_dims": [
+            16,
+            1432,
+            184
+          ],
+          "atlas_bytes": 16863232
+        },
+        {
+          "field": "disocclusion",
+          "capacity": 8233,
+          "atlas_slots": 8234,
+          "atlas_dims": [
+            16,
+            1432,
+            184
+          ],
+          "atlas_bytes": 4215808
+        }
+      ],
+      "break_even_residency": 0.9619
+    },
+    {
+      "mode": "three_field",
+      "split_pools": true,
+      "residency": 0.75,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 42467328,
+      "atlas_mib": 40.5,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 1811200,
+      "overhead_mib": 1.727,
+      "sparse_bytes": 44278528,
+      "sparse_mib": 42.227,
+      "net_saved_bytes": 12344576,
+      "net_saved_mib": 11.773,
+      "saving_ratio": 0.218,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 9216,
+          "atlas_slots": 9216,
+          "atlas_dims": [
+            8,
+            768,
+            768
+          ],
+          "atlas_bytes": 18874368
+        },
+        {
+          "field": "neighbour",
+          "capacity": 9216,
+          "atlas_slots": 9216,
+          "atlas_dims": [
+            8,
+            768,
+            768
+          ],
+          "atlas_bytes": 18874368
+        },
+        {
+          "field": "disocclusion",
+          "capacity": 9216,
+          "atlas_slots": 9216,
+          "atlas_dims": [
+            8,
+            768,
+            768
+          ],
+          "atlas_bytes": 4718592
+        }
+      ],
+      "break_even_residency": 0.9619
+    },
+    {
+      "mode": "three_field",
+      "split_pools": true,
+      "residency": 0.9,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 50964480,
+      "atlas_mib": 48.604,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 2054608,
+      "overhead_mib": 1.959,
+      "sparse_bytes": 53019088,
+      "sparse_mib": 50.563,
+      "net_saved_bytes": 3604016,
+      "net_saved_mib": 3.437,
+      "saving_ratio": 0.0636,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 11060,
+          "atlas_slots": 11060,
+          "atlas_dims": [
+            8,
+            1120,
+            632
+          ],
+          "atlas_bytes": 22650880
+        },
+        {
+          "field": "neighbour",
+          "capacity": 11060,
+          "atlas_slots": 11060,
+          "atlas_dims": [
+            8,
+            1120,
+            632
+          ],
+          "atlas_bytes": 22650880
+        },
+        {
+          "field": "disocclusion",
+          "capacity": 11060,
+          "atlas_slots": 11060,
+          "atlas_dims": [
+            8,
+            1120,
+            632
+          ],
+          "atlas_bytes": 5662720
+        }
+      ],
+      "break_even_residency": 0.9619
+    },
+    {
+      "mode": "three_field",
+      "split_pools": true,
+      "residency": 1.0,
+      "virtual_pages": 12288,
+      "bricks_per_cascade": 2048,
+      "dense_bytes": 56623104,
+      "dense_mib": 54.0,
+      "atlas_bytes": 56623104,
+      "atlas_mib": 54.0,
+      "atlas_slack_slots": 0,
+      "overhead_bytes": 2216704,
+      "overhead_mib": 2.114,
+      "sparse_bytes": 58839808,
+      "sparse_mib": 56.114,
+      "net_saved_bytes": -2216704,
+      "net_saved_mib": -2.114,
+      "saving_ratio": -0.0391,
+      "pools": [
+        {
+          "field": "light",
+          "capacity": 12288,
+          "atlas_slots": 12288,
+          "atlas_dims": [
+            8,
+            1024,
+            768
+          ],
+          "atlas_bytes": 25165824
+        },
+        {
+          "field": "neighbour",
+          "capacity": 12288,
+          "atlas_slots": 12288,
+          "atlas_dims": [
+            8,
+            1024,
+            768
+          ],
+          "atlas_bytes": 25165824
+        },
+        {
+          "field": "disocclusion",
+          "capacity": 12288,
+          "atlas_slots": 12288,
+          "atlas_dims": [
+            8,
+            1024,
+            768
+          ],
+          "atlas_bytes": 6291456
+        }
+      ],
+      "break_even_residency": 0.9619
+    }
+  ]
+}
