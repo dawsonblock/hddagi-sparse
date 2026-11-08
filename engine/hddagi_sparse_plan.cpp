@@ -212,7 +212,11 @@ DispatchPlan plan_dispatch(const SparsePlan &plan, uint32_t fixture_count,
 	const uint32_t bricks_per_cascade = uint32_t((grid[0] / BRICK_EDGE) * (grid[1] / BRICK_EDGE) * (grid[2] / BRICK_EDGE));
 
 	d.compact_groups = groups_for(word_count);
-	d.allocate_groups = groups_for(plan.capacity);
+	// Allocate must cover the compacted list, which is bounded by the virtual slot
+	// count, not by capacity. Dispatching only `capacity` threads silently ignores
+	// every request beyond the pool size, so overflow is never counted and the host
+	// never learns the pool is too small. The shader guards the tail.
+	d.allocate_groups = groups_for(plan.virtual_pages);
 	d.initialize_groups = groups_for(plan.capacity);
 	d.canary_total_groups = groups_for(plan.capacity * VOXELS_PER_BRICK);
 	const uint32_t limit = max_workgroups_x == 0 ? 1u : max_workgroups_x;

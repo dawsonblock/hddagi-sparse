@@ -48,10 +48,10 @@ tools/
   Windows 11 + MSVC + Vulkan build and were not executed.
 - M1 (CPU oracle) is complete: 43 test cases pass, clean under ASan/UBSan, and the
   suite is proven to fail under deliberate mutation.
-- M2 is scaffolding: four compute shaders compile to validated SPIR-V, a CPU twin
-  agrees with the M1 oracle on 1,180 fixtures, and the capability/dispatch decision
-  core is implemented and tested (14 cases). **Nothing has run on a GPU**, so the M2
-  gate is not met. See `artifacts/m2_scaffold.md`.
+- M2 kernels **execute on this machine's GPU** (Apple M2 Pro, Metal): translation
+  parity 1,180/1,180, atlas canary 524,288/524,288 texels, allocator invariants hold.
+  The capability/dispatch decision core is tested (15 cases). The M2 gate still names
+  Vulkan on the RTX 3080 Ti, so it is not met. See `artifacts/m2_scaffold.md`.
 
 Read `artifacts/decision.md` for the M0 gate and `artifacts/m1_report.md` for M1.
 
@@ -81,6 +81,7 @@ CXXFLAGS="-fsanitize=address,undefined" BUILD=build-san ./run_tests.sh
 ```bash
 cd gpu
 ./build.sh                     # compile + validate shaders, run the twin tests
+./run_gpu_tests.sh             # execute the kernels on this machine's GPU (Metal)
 
 cd ../engine
 ./build.sh                     # capability and dispatch decisions

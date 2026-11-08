@@ -219,12 +219,28 @@ TEST(dispatch_plan_sizes_the_manage_modes) {
 	// 12,288 slots / 32 per word = 384 words -> 6 groups.
 	CHECK_EQ(d.compact.word_count, 384u);
 	CHECK_EQ(d.compact_groups, 6u);
-	CHECK_EQ(d.allocate_groups, groups_for(1024));
+	// Allocation is dispatched over every virtual slot, because the compacted list
+	// can exceed capacity and the overflow branch must be reachable.
+	CHECK_EQ(d.allocate_groups, groups_for(12288));
 	CHECK_EQ(d.initialize_groups, groups_for(1024));
 	CHECK_EQ(d.canary.page_count, 1024u);
 	CHECK_EQ(d.canary_total_groups, groups_for(1024 * 512));
 	CHECK_EQ(d.canary_passes, 1u);
 	CHECK_EQ(d.canary_groups, d.canary_total_groups);
+}
+
+TEST(allocate_dispatch_is_sized_by_slots_not_capacity) {
+	// Regression, found by executing the kernel on a GPU rather than in the twin.
+	// Dispatching only `capacity` threads means every request beyond the pool size
+	// is never examined: the overflow branch is unreachable, the counter stays zero,
+	// and the host concludes the pool was sufficient. The CPU twin missed this
+	// because it loops over compacted_count directly and never encodes a dispatch.
+	const SparsePlan p = plan_sparse_resources(good_caps(), default_request(256));
+	const int grid[3] = { 128, 64, 128 };
+	const DispatchPlan d = plan_dispatch(p, 0, 1, 1, 6, grid);
+
+	CHECK(d.allocate_groups >= groups_for(p.virtual_pages));
+	CHECK(d.allocate_groups > groups_for(p.capacity));
 }
 
 TEST(push_constant_layout_is_byte_stable) {

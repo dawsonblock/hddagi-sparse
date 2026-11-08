@@ -1,11 +1,34 @@
 # M2 scaffold — GPU page table and physical pool
 
-Status: **scaffolding only. The M2 gate is NOT met.** No Vulkan device was created,
-no dispatch was executed, no VRAM was allocated. What exists is a shader set that
-provably compiles, and a CPU twin of those shaders that provably agrees with the M1
-oracle on 1,180 fixtures.
+Status: **the kernels execute on a real GPU. The M2 gate is still NOT met**, because
+the gate names Vulkan on the RTX 3080 Ti and this is Metal on an Apple M2 Pro. But
+"nothing has ever executed" is no longer true, and executing them found a bug that
+neither `spirv-val` nor the CPU twin could catch.
 
-## 1. What is actually verified here
+## 0. Hardware execution
+
+Pipeline: GLSL -> SPIR-V (glslang) -> MSL (spirv-cross) -> Metal, all on this host.
+The MSL is compiled at runtime from the generated source, so what runs is derived
+from the shipped shader text, not a hand-written reimplementation.
+
+| check | result |
+|---|---|
+| translation parity, 1,180 fixture records | **PASS, 0 mismatches** |
+| atlas canary, 1,024 pages, 64x64x128 r32Uint, 524,288 texels | **PASS, 0 mismatches** |
+| allocator, 4,096 slots / 256 pages / 300 requests | **PASS**: 300 compacted, 256 allocated, 44 overflow, 256 committed, no duplicate page |
+
+Device: Apple M2 Pro, Metal 4. Reproduce with `gpu/run_gpu_tests.sh`.
+
+**What this proves:** the address arithmetic, the atlas mapping and the allocation
+state machine are correct when executed as compiled shaders on real hardware, with
+real atomics and real cross-pass dependencies (the three allocator modes run as three
+separate command buffers, the strictest form of the barrier requirement).
+
+**What it does not prove:** Vulkan driver behaviour, descriptor binding through
+RenderingDevice, engine integration, or anything about performance. Metal and Vulkan
+differ in exactly the areas M2 exists to test.
+
+## 1. What is verified by compilation and the CPU twin
 
 | claim | evidence |
 |---|---|
@@ -16,6 +39,7 @@ oracle on 1,180 fixtures.
 | Struct layouts are 16 / 32 / 32 bytes | `static_assert`, verified at runtime |
 | The GPU-shaped allocator respects capacity and never aliases | 300 requests into 256 pages: 256 allocated, 44 overflowed, 256 distinct page ids |
 | Canary encoding is a bijection over (page, local) | 32,768 distinct values, one corrupted texel detected and located |
+| Allocation dispatch covers the compacted list | 15 cases; see the bug note below |
 | Capability decisions are correct and fail closed | 14 cases in `engine/`, including one per refusal reason |
 | Dispatch sizing and push-constant layout are right | 14 cases, incl. workgroup-limit splitting for a 12,288-page pool |
 
@@ -26,6 +50,24 @@ Reproduce with `gpu/build.sh` (shaders + twin, 7 cases) and `engine/build.sh`
 Agreement with the M1 oracle validates the algorithm and the layout contract; it
 cannot validate that the GLSL executes as written. That distinction is the whole
 reason M2 exists as a separate milestone.
+
+## 1a. The bug that only hardware found
+
+`MODE_ALLOCATE` was dispatched with `groups_for(capacity)`. But the compacted list is
+bounded by the **virtual slot count**, not by capacity. With 300 requests and a
+256-page pool, only 256 threads ran: the last 44 requests were never examined, the
+overflow branch was unreachable, and `counters.overflow` read **0**.
+
+That is the worst failure shape in the whole design. The host sees a full allocation,
+no overflow, and concludes the pool was sufficient — while 44 regions silently stay
+unmapped. The RFC explicitly forbids this ("A full pool is a controlled state").
+
+The CPU twin could not catch it: the twin loops over `compacted_count` directly and
+never encodes a dispatch, so the sizing error does not exist in that model. `spirv-val`
+cannot catch it either, because the shader is correct; the launch geometry is wrong.
+
+Fixed: `allocate_groups` is now `groups_for(virtual_pages)`, with the shader guarding
+the tail. Regression test `allocate_dispatch_is_sized_by_slots_not_capacity`.
 
 ## 2. What is not verified
 
@@ -174,6 +216,10 @@ lists without a barrier would race.
 
 ## 9. Gate
 
-Not met. M2's gate is "GPU micro-test passes in Vulkan on RTX 3080 Ti". Nothing in
-this scaffold substitutes for that, and no performance or correctness claim about the
-GPU path should be made from it.
+Not met. M2's gate is "GPU micro-test passes in Vulkan on RTX 3080 Ti". The Metal run
+is strong evidence that the kernels are correct, but it is a different API on a
+different vendor, and the gate was written to test the target driver specifically.
+
+What has changed: the remaining risk is concentrated in RenderingDevice integration
+and Vulkan specifics, not in the algorithms. The algorithms now have hardware
+evidence behind them.
