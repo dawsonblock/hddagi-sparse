@@ -45,6 +45,36 @@ It cannot run without those resources existing and being readable. Running it fo
 frames without error is therefore evidence that HDDAGI actually initialised on Metal,
 not merely that the scene loaded.
 
+## In-engine capability probe (M2.01 wired)
+
+`engine/hddagi_sparse_plan.{h,cpp}` is now compiled into the engine and
+`GI::HDDAGI::create()` runs a one-shot probe, printing:
+
+```
+HDDAGI sparse probe: SUPPORTED (check 0) - all capability checks passed
+  caps: 3d_extent=2048 storage_buffers_per_set=unbounded push_constant=unbounded workgroups_x=unbounded
+  formats: R32_UINT_3D=yes R8_UINT_3D=yes E5B9G9R9_view=yes storage_buffer=yes
+  plan: virtual_pages=12288 capacity=1024 slots=8x8x16 atlas_texels=64x64x128 total=4.73 MiB
+```
+
+So this backend would accept the sparse path at 1,024 pages, and the planner's
+budget (4.73 MiB) agrees with the M0 model.
+
+Two bugs were found by running it, both instructive:
+
+1. **`shareable_formats` must contain the base format.** The probe listed only
+   `E5B9G9R9_UFLOAT_PACK32` and `texture_create` rejected it: "the current format
+   must be present in the list". `gi.cpp:463-464` pushes both. A capability probe
+   that misreports the dense path's own formats would have refused a backend that
+   works.
+2. **Metal returns `UINT64_MAX` for several limits**, meaning "unbounded". Cast to
+   `int` they printed as `-1`, which reads like corruption. The log now renders
+   anything above 2^30 as "unbounded". Worth knowing before anyone trusts a limit
+   value from this backend.
+
+The probe is intentionally one-shot and unconditional; it costs two 1x1x1 textures
+and a 16-byte buffer per process.
+
 ## The assumption that turned out to be wrong
 
 Before building I expected HDDAGI to be impossible on macOS, because
